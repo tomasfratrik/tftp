@@ -4,7 +4,7 @@
 SRCS := $(wildcard src/*.cpp)
 OBJS := $(SRCS:.cpp=.o)
 CC = g++
-CPPFLAGS = -std=c++2a
+CPPFLAGS = -std=c++2a -g
 
 OBJS_CLIENT := $(filter-out src/tftp-server.o, $(OBJS))
 OBJS_SERVER := $(filter-out src/tftp-client.o, $(OBJS))

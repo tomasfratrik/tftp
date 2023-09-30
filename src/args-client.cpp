@@ -10,7 +10,7 @@ Args::Args(int argc, char** argv) {
     while((opt = getopt(argc, argv, "h:p:f:t:")) != -1){
         switch(opt) {
             case 'h':
-                this->hostname = optarg;
+                hostname = optarg;
                 break;
             case 'p':
                 port = atoi(optarg);
