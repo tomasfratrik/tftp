@@ -9,7 +9,7 @@
 class Client {
     struct sockaddr_in addr;
     std::string hostname;
-    int port = -1;
+    int port;
     std::string filepath;
     std::string dest_path;
 

@@ -14,7 +14,7 @@ class Args {
     public:
         std::string hostname;
         struct sockaddr_in address;
-        int port = -1;
+        int port = 69;
         std::string filepath;
         std::string dest_path;
         Args(int argc, char** argv);
