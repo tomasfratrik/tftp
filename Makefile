@@ -20,5 +20,9 @@ tftp-server: $(OBJS_SERVER)
 $(OBJS): src/%.o: src/%.cpp
 	$(CC) $(CPPFLAGS) -c $< -o $@
 
+zip:
+	clean
+	zip -r xfratr01.zip *
+
 clean:
-	rm -f tftp-client tftp-server $(OBJS)
+	rm -f src/*.o tftp-client tftp-server $(OBJS)
