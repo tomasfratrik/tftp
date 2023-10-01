@@ -1,14 +1,10 @@
 #ifndef __PACKET_HPP__
 #define __PACKET_HPP__
 
-// class Packet {
-//     public:
-//         Opcode opcode;
-//         int block;
-//         Error errorcode;
-        
 
-// };
+#define BLOCKSIZE 512
+// The maximum size of a request packet
+#define PACKETSIZE 512
 
 enum class Error {
     NOT_DEFINED = 0,

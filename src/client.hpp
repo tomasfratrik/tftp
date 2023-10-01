@@ -10,7 +10,7 @@ class Client {
     struct sockaddr_in addr;
     std::string hostname;
     int port;
-    std::string filepath;
+    std::string server_filepath;
     std::string dest_path;
 
     Opcode opcode;
@@ -22,6 +22,7 @@ class Client {
         Client(Args *args);
         void run();
         void print_status();
+        void WRQ();
 };
     
 
