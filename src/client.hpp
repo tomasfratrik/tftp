@@ -1,5 +1,5 @@
-#ifndef __Client_HPP__
-#define __Client_HPP__
+#ifndef __CLIENT_HPP__
+#define __CLIENT_HPP__
 
 #include <string>
 #include <netinet/in.h>
@@ -7,14 +7,16 @@
 #include "./args-client.hpp"
 
 class Client {
-    struct sockaddr_in addr;
+    struct hostent* servent;
+    struct sockaddr_in server;
     std::string hostname;
-    int port;
+    int port = 1337;
     std::string server_filepath;
     std::string dest_path;
 
     Opcode opcode;
     Mode mode;
+    int blockid;
     int blocksize;
     int sock;
 
@@ -26,4 +28,4 @@ class Client {
 };
     
 
-#endif // __Client_HPP__
+#endif // ___CLIENT_HPP_

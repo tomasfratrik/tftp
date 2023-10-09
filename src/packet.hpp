@@ -1,6 +1,9 @@
 #ifndef __PACKET_HPP__
 #define __PACKET_HPP__
-
+#include <string>
+#include <netinet/in.h>
+#include <iostream>
+#include <cstring>
 
 #define BLOCKSIZE 512
 // The maximum size of a request packet
@@ -33,5 +36,46 @@ enum class Mode {
     MAIL = 3,
     NONE = 4
 };
+
+class Packet {
+    public:
+        Opcode opcode;
+        int len = 0;
+        void print_buffer(char *buffer, int len);
+
+};
+
+class RQ_packet : public Packet {
+    public:
+        std::string filename;
+        std::string mode;
+        char buffer[PACKETSIZE];
+        RQ_packet(Opcode new_opcode, std::string new_filename, Mode new_mode);
+        void init_buffer();
+};
+
+class DATA_packet : public Packet {
+    public:
+        char data[BLOCKSIZE];
+        char buffer[PACKETSIZE];
+        int block;
+        int data_size;
+};
+
+class ACK_packet : public Packet {
+    public:
+        char buffer[4];
+        int block;
+};
+
+class ERROR_packet : public Packet {
+    public:
+        char buffer[PACKETSIZE];
+        Error error_code;
+        std::string error_msg;
+};
+
+
+
 
 #endif // __PACKET_HPP__

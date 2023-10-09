@@ -5,8 +5,8 @@
  * 
  */
 
-#ifndef __ARGC_HPP__
-#define __ARGC_HPP__
+#ifndef __ARGS_C_HPP__
+#define __ARGS_C_HPP__
 #include <string>
 #include <netinet/in.h>
 
@@ -14,7 +14,7 @@ class Args {
     public:
         std::string hostname;
         struct sockaddr_in address;
-        int port = 69;
+        int port = 1337;
         std::string filepath;
         std::string dest_path;
         Args(int argc, char** argv);

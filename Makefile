@@ -2,7 +2,8 @@
 # Author: Tomas Fratrik (xfratr01)
 
 SRCS := $(wildcard src/*.cpp)
-OBJS := $(SRCS:.cpp=.o)
+OBJS := $(SRCS:%.cpp=%.o)
+DEPS := $(SRCS:%.cpp=%.d)
 CC = g++
 CPPFLAGS = -std=c++2a -g
 
@@ -25,4 +26,4 @@ zip:
 	zip -r xfratr01.zip *
 
 clean:
-	rm -f src/*.o tftp-client tftp-server $(OBJS)
+	rm -f tftp-client tftp-server $(OBJS) $(DEPS)
