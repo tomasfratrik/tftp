@@ -9,6 +9,11 @@
 // The maximum size of a request packet
 #define PACKETSIZE 512
 
+typedef struct {
+    char ip[INET_ADDRSTRLEN];
+    int port;
+}ip_t;
+
 enum class Error {
     NOT_DEFINED = 0,
     FILE_NOT_FOUND = 1,
@@ -36,12 +41,13 @@ enum class Mode {
     MAIL = 3,
     NONE = 4
 };
+void print_buffer(char *buffer, int len);
 
 class Packet {
     public:
         Opcode opcode;
+        static std::string convert_mode_to_str(Mode mode); 
         int len = 0;
-        void print_buffer(char *buffer, int len);
 
 };
 

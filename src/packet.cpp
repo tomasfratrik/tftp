@@ -1,9 +1,6 @@
 #include "./packet.hpp"
 
-// Packet::Packet(Opcode new_opcode) {
-//     opcode = new_opcode;
-// }
-std::string convert_mode_to_str(Mode mode) {
+std::string Packet::convert_mode_to_str(Mode mode) {
     switch(mode) {
         case Mode::NETASCII:
             return "netascii";
@@ -19,7 +16,7 @@ std::string convert_mode_to_str(Mode mode) {
 RQ_packet::RQ_packet(Opcode new_opcode, std::string new_filename, Mode new_mode) {
     opcode = new_opcode;
     filename = new_filename;
-    mode = convert_mode_to_str(new_mode);
+    mode = Packet::convert_mode_to_str(new_mode);
 }
 
 
@@ -38,7 +35,7 @@ void RQ_packet::init_buffer() {
 
 }
 
-void Packet::print_buffer(char *buffer, int len) {
+void print_buffer(char *buffer, int len) {
     int opcode = ntohs(*(uint16_t*)(&buffer[0]));
     std::cout << opcode;
     for (int i = 2; i < len; i++) {

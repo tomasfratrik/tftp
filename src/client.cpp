@@ -38,12 +38,23 @@ void Client::WRQ() {
     socklen_t len = sizeof(server);
     RQ_packet rq_packet(opcode, "test.txt", Mode::OCTET);
     rq_packet.init_buffer();
-    std::cout<< "len: " << rq_packet.len << std::endl;
-    std::cout<< "mode: " << rq_packet.mode << std::endl;
-    rq_packet.print_buffer(rq_packet.buffer, rq_packet.len);
-    std::cout << std::endl;
 
+        n = sendto(sock, rq_packet.buffer, rq_packet.len, 0, 
+                (struct sockaddr *)&server, len);
+        
+        if(n < 0){
+            error_exit("sendto error");
+        }
+        memset(buffer, 0, PACKETSIZE);
+
+        n = recvfrom(sock, buffer, PACKETSIZE, 0, 
+                (struct sockaddr *)&server, &len);
+        if(n < 0){
+            error_exit("recvfrom error");
+        }
+        std::cout << "Server: " << buffer << std::endl;
     while(msg_size = read(STDIN_FILENO, buffer, PACKETSIZE)) {
+
 
 
 

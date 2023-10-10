@@ -29,34 +29,20 @@ void Server::run(){
         error_exit("socket creation failed");
     }
 
-    // if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))) {
-    //     error_exit("setsockopt");
-    // }
-    //bind socket to port
     if (bind(sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
         error_exit("bind\n (port probably already in use)");
     }
-
-
-    // server_addr.sin_family = AF_INET;
-    // server_addr.sin_addr.s_addr = INADDR_ANY;
 
     int len = sizeof(client_addr);
     int n;
     while (1) {
         n = recvfrom(sock, (char *)buffer, PACKETSIZE, MSG_WAITALL, (struct sockaddr *)&client_addr, (socklen_t *)&len);
-        // n = recvfrom(sock, buffer, PACKETSIZE, 0, (struct sockaddr *)&client_addr, (socklen_t *)&len);
         buffer[n] = '\0';
-        std::cout << "Client msg: " << buffer << std::endl;
-        // null buffer
+        logger.log(buffer, n,&client_addr);
         memset(buffer, 0, PACKETSIZE);
         strcpy(buffer, "Server received message");
 
         sendto(sock, (const char *)buffer, strlen(buffer), MSG_CONFIRM, (const struct sockaddr *)&client_addr, len);
-
-        // std::cout << "Client: " << buffer << std::endl;
-        // sendto(sock, (const char *)buffer, strlen(buffer), MSG_CONFIRM, (const struct sockaddr *)&client_addr, len);
-        // std::cout << "Message sent." << std::endl;
     }
 
 }
