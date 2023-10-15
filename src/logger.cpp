@@ -1,10 +1,10 @@
 #include "./logger.hpp"
 #include <cstring>
 
-ip_t Logger::find_src(struct sockaddr_in *client_addr) {
+ip_t Logger::find_src(struct sockaddr_in *addr) {
     char client_ip[INET_ADDRSTRLEN];
-    inet_ntop(AF_INET, &(client_addr->sin_addr), client_ip, INET_ADDRSTRLEN);
-    int client_port = ntohs(client_addr->sin_port);
+    inet_ntop(AF_INET, &(addr->sin_addr), client_ip, INET_ADDRSTRLEN);
+    int client_port = ntohs(addr->sin_port);
     ip_t src;
     strcpy(src.ip, client_ip);
     src.port = client_port;
