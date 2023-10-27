@@ -12,7 +12,7 @@
 
 class Logger {
     public: 
-        static Opcode get_opcode(char *buffer);
+        static Opcode get_opcode(char *buffer, int pos);
         static void log(char *buffer, int len, struct sockaddr_in *client_addr);
         static ip_t find_src(struct sockaddr_in *client_addr);
 };

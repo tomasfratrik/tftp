@@ -3,9 +3,10 @@
 #include <string>
 #include "./args-server.hpp"
 #include "./logger.hpp"
+#include "./tftp.hpp"
 
 class Server {
-    int port;
+    int port = DEFAULT_PORT;
     std::string root_dirpath; 
     Logger logger;
 

@@ -5,12 +5,13 @@
 #include <netinet/in.h>
 #include "./packet.hpp"
 #include "./args-client.hpp"
+#include "./tftp.hpp"
 
 class Client {
     struct hostent* servent;
     struct sockaddr_in server;
     std::string hostname;
-    int port = 1337;
+    int port = DEFAULT_PORT;
     std::string server_filepath;
     std::string dest_path;
 

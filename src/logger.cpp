@@ -11,19 +11,29 @@ ip_t Logger::find_src(struct sockaddr_in *addr) {
     return src;
 }
 
-Opcode Logger::get_opcode(char *buffer) {
-    return (Opcode)ntohs(*(uint16_t*)(&buffer[0]));
+Opcode Logger::get_opcode(char *buffer, int pos) {
+    return (Opcode)ntohs(*(uint16_t*)(&buffer[pos]));
 }
 
-void Logger::log(char *buffer, int len,struct sockaddr_in *client_addr) {
+void Logger::log(char *buffer, int packet_len,struct sockaddr_in *client_addr) {
     ip_t src = Logger::find_src(client_addr);
-    Opcode opcode = Logger::get_opcode(buffer);
+    int curr_len = 0;
+    // each packet by protocol has opcode as 2 byte number
+    Opcode opcode = Logger::get_opcode(buffer, curr_len);
+    int filesize;
 
     switch(opcode) {
         case Opcode::RRQ:
             break;
         case Opcode::WRQ:
-            std::cout << "WRQ " << src.ip << ":" << src.port << " \"" << &buffer[2] << "\" " << &buffer[2 + strlen(&buffer[2]) + 1] << std::endl;
+            std::cerr << "WRQ " << src.ip << ":" << src.port;
+            curr_len +=2;
+            std::cerr << buffer[curr_len];
+            filesize = strlen(&buffer[2]) + 1;
+            curr_len += filesize;
+            std::cerr << buffer[curr_len];
+            std::cerr << std::endl;
+            // std::cerr << "WRQ " << src.ip << ":" << src.port << " \"" << &buffer[2] << "\" " << &buffer[2 + filesize] << std::endl;
             break;
         default:
             error_exit("Invalid opcode");

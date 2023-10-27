@@ -63,7 +63,7 @@ class RQ_packet : public Packet {
 class DATA_packet : public Packet {
     public:
         char data[BLOCKSIZE];
-        char buffer[PACKETSIZE];
+        char buffer[PACKETSIZE + BLOCKSIZE];
         int block;
         int data_size;
 };
