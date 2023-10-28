@@ -35,6 +35,17 @@ void RQ_packet::init_buffer() {
 
 }
 
+ACK_packet::ACK_packet(Opcode opcode, int block) {
+    *(uint16_t*)(&buffer[0]) = htons((int)opcode);
+    *(uint16_t*)(&buffer[2]) = htons(block);
+    this->len += 4;
+}
+
+void ACK_packet::print_buffer(char *buffer) {
+    std::cout << "opcode: " << ntohs(*(uint16_t*)(&buffer[0])) << std::endl;
+    std::cout << "block: " << ntohs(*(uint16_t*)(&buffer[2])) << std::endl;
+}
+
 void print_buffer(char *buffer, int len) {
     int opcode = ntohs(*(uint16_t*)(&buffer[0]));
     std::cout << opcode;

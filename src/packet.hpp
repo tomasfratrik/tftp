@@ -88,6 +88,8 @@ class ACK_packet : public Packet {
     public:
         char buffer[4];
         int block;
+        ACK_packet(Opcode opcode, int block);
+        static void print_buffer(char *buffer);
 };
 class OACK_packet : public Packet {
     public:

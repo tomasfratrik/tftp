@@ -42,7 +42,10 @@ void Server::run(){
         memset(buffer, 0, PACKETSIZE);
         strcpy(buffer, "Server received message");
 
-        sendto(sock, (const char *)buffer, strlen(buffer), MSG_CONFIRM, (const struct sockaddr *)&client_addr, len);
+        ACK_packet ack_packet(Opcode::ACK, 0);
+
+        // sendto(sock, (const char *)buffer, strlen(buffer), MSG_CONFIRM, (const struct sockaddr *)&client_addr, len);
+        sendto(sock, ack_packet.buffer, ack_packet.len, MSG_CONFIRM, (const struct sockaddr *)&client_addr, len);
     }
 
 }

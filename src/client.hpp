@@ -16,10 +16,11 @@ class Client {
     std::string dest_path;
 
     Opcode opcode;
-    Mode mode;
+    Mode mode = Mode::OCTET;
     int blockid;
     int blocksize;
     int sock;
+    socklen_t len;
     // bool sent_rq = false;
 
     public:
@@ -27,7 +28,10 @@ class Client {
         void run();
         void print_status();
         void WRQ();
-        void send(char *buffer, int len);
+        int send(char *buffer, int len);
+        int recv(char *buffer, int len);
+
+        void send_wrq_packet();
 };
     
 
