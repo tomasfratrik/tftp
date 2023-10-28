@@ -21,11 +21,6 @@ void Logger::log(char *buffer, int packet_len,struct sockaddr_in *client_addr) {
     // each packet by protocol has opcode as 2 byte number
     Opcode opcode = Logger::get_opcode(buffer, curr_len);
     int filesize;
-    std::cout << "buffer: ";
-    for(int i  = 0; i < packet_len; i++) {
-        std::cout << buffer[i];
-    }
-    std::cout << std::endl;
 
     switch(opcode) {
         case Opcode::RRQ:
