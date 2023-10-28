@@ -99,14 +99,6 @@ void Client::run() {
         error_exit("socket creation error");
     }
 
-    // set timeout
-    // struct timeval tv;
-    // tv.tv_sec = 2;
-    // tv.tv_usec = 0;
-    // if(setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0){
-    //     error_exit("setsockopt error");
-    // }
-
     if(opcode == Opcode::WRQ){
         Client::WRQ();
     } else {

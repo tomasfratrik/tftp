@@ -3,7 +3,10 @@
 #include <string>
 #include <netinet/in.h>
 #include <iostream>
+#include <string>
 #include <cstring>
+#include <vector>
+#include <utility>
 
 #define BLOCKSIZE 512
 // The maximum size of a request packet
@@ -51,11 +54,24 @@ class Packet {
 
 };
 
+typedef struct {
+    std::string name;
+    std::string str_value;
+    int int_value;
+
+} option_t;
+
+class Options {
+    public:
+        std::vector<option_t> options;
+};
+
 class RQ_packet : public Packet {
     public:
         std::string filename;
         std::string mode;
         char buffer[PACKETSIZE];
+        Options options;
         RQ_packet(Opcode new_opcode, std::string new_filename, Mode new_mode);
         void init_buffer();
 };
@@ -72,6 +88,12 @@ class ACK_packet : public Packet {
     public:
         char buffer[4];
         int block;
+};
+class OACK_packet : public Packet {
+    public:
+        int block;
+        char buffer[PACKETSIZE];
+        Options options;
 };
 
 class ERROR_packet : public Packet {
