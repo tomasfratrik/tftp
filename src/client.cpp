@@ -31,20 +31,30 @@ void Client::print_status() {
     std::cout << "dest_path: " << dest_path << std::endl;
 }
 
+void Client::send(char *buffer, int len){
+    int n = sendto(this->sock, buffer, len, 0, 
+            (struct sockaddr *)&(this->server), sizeof(this->server));
+
+    if (n < 0){
+        error_exit("sendto error");
+    }
+}
+
 void Client::WRQ() {
     int msg_size;
     char buffer[PACKETSIZE] = {0};
     int n;
     socklen_t len = sizeof(server);
-    RQ_packet rq_packet(opcode, "test.txt", Mode::OCTET);
-    rq_packet.init_buffer();
 
-        n = sendto(sock, rq_packet.buffer, rq_packet.len, 0, 
-                (struct sockaddr *)&server, len);
+    while(true){
+
+        RQ_packet rq_packet(this->opcode, "test.txt", Mode::OCTET);
+        rq_packet.init_buffer();
+
+        // n = sendto(this->sock, rq_packet.buffer, rq_packet.len, 0, 
+        //         (struct sockaddr *)&server, len);
+        this->send(rq_packet.buffer, rq_packet.len);
         
-        if(n < 0){
-            error_exit("sendto error");
-        }
         memset(buffer, 0, PACKETSIZE);
 
         n = recvfrom(sock, buffer, PACKETSIZE, 0, 
@@ -53,26 +63,46 @@ void Client::WRQ() {
             error_exit("recvfrom error");
         }
         std::cout << "Server: " << buffer << std::endl;
-    while(msg_size = read(STDIN_FILENO, buffer, PACKETSIZE)) {
-
-
-
-
-        n = sendto(sock, buffer, msg_size, 0, 
-                (struct sockaddr *)&server, len);
-        
-        if(n < 0){
-            error_exit("sendto error");
-        }
-        memset(buffer, 0, PACKETSIZE);
-
-        n = recvfrom(sock, buffer, PACKETSIZE, 0, 
-                (struct sockaddr *)&server, &len);
-        if(n < 0){
-            error_exit("recvfrom error");
-        }
-        std::cout << "Server: " << buffer << std::endl;
+        break;
     }
+
+    // RQ_packet rq_packet(this->opcode, "test.txt", Mode::OCTET);
+    // rq_packet.init_buffer();
+
+    //     n = sendto(sock, rq_packet.buffer, rq_packet.len, 0, 
+    //             (struct sockaddr *)&server, len);
+        
+    //     if(n < 0){
+    //         error_exit("sendto error");
+    //     }
+    //     memset(buffer, 0, PACKETSIZE);
+
+    //     n = recvfrom(sock, buffer, PACKETSIZE, 0, 
+    //             (struct sockaddr *)&server, &len);
+    //     if(n < 0){
+    //         error_exit("recvfrom error");
+    //     }
+    //     std::cout << "Server: " << buffer << std::endl;
+    // while(msg_size = read(STDIN_FILENO, buffer, PACKETSIZE)) {
+
+
+
+
+    //     n = sendto(sock, buffer, msg_size, 0, 
+    //             (struct sockaddr *)&server, len);
+        
+    //     if(n < 0){
+    //         error_exit("sendto error");
+    //     }
+    //     memset(buffer, 0, PACKETSIZE);
+
+    //     n = recvfrom(sock, buffer, PACKETSIZE, 0, 
+    //             (struct sockaddr *)&server, &len);
+    //     if(n < 0){
+    //         error_exit("recvfrom error");
+    //     }
+    //     std::cout << "Server: " << buffer << std::endl;
+    // }
 
 }
 

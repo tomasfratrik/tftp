@@ -21,19 +21,23 @@ void Logger::log(char *buffer, int packet_len,struct sockaddr_in *client_addr) {
     // each packet by protocol has opcode as 2 byte number
     Opcode opcode = Logger::get_opcode(buffer, curr_len);
     int filesize;
+    std::cout << "buffer: ";
+    for(int i  = 0; i < packet_len; i++) {
+        std::cout << buffer[i];
+    }
+    std::cout << std::endl;
 
     switch(opcode) {
         case Opcode::RRQ:
             break;
         case Opcode::WRQ:
-            std::cerr << "WRQ " << src.ip << ":" << src.port;
+            std::cerr << "WRQ " << src.ip << ":" << src.port << " ";
             curr_len +=2;
-            std::cerr << buffer[curr_len];
+            std::cerr << &buffer[curr_len]<< " ";
             filesize = strlen(&buffer[2]) + 1;
             curr_len += filesize;
-            std::cerr << buffer[curr_len];
+            std::cerr << &buffer[curr_len];
             std::cerr << std::endl;
-            // std::cerr << "WRQ " << src.ip << ":" << src.port << " \"" << &buffer[2] << "\" " << &buffer[2 + filesize] << std::endl;
             break;
         default:
             error_exit("Invalid opcode");

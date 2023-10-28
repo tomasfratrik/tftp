@@ -20,12 +20,14 @@ class Client {
     int blockid;
     int blocksize;
     int sock;
+    // bool sent_rq = false;
 
     public:
         Client(Args *args);
         void run();
         void print_status();
         void WRQ();
+        void send(char *buffer, int len);
 };
     
 
