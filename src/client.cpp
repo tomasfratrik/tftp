@@ -90,13 +90,10 @@ void Client::WRQ() {
             std::cout << "ERROR packet recived" << std::endl;
             break;
         default:
-            std::cout << "CAN'T FIND SUITABLE OPCODE" << std::endl;
+            error_exit("CAN'T FIND SUITABLE OPCODE");
             break;
 
     }
-
-
-    // while(msg_size = read(STDIN_FILENO, buffer, PACKETSIZE)) {
 
 }
 
