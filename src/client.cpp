@@ -52,9 +52,8 @@ int Client::recv(char *buffer, int len){
     return n;
 }
 
-
 void Client::send_rq_packet() {
-    option_t blksize_opt = {"blksize", "0", 1024};
+    option_t blksize_opt = {.name = "blksize", .value = 1024};
 
     this->options.push_back(blksize_opt);
 
