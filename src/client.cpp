@@ -7,6 +7,7 @@
 #include <cstring>
 #include "./client.hpp"
 #include "./error_exit.hpp"
+#include "./tftp.hpp"
 
 
 
@@ -51,21 +52,50 @@ int Client::recv(char *buffer, int len){
     return n;
 }
 
-void Client::send_wrq_packet() {
-    RQ_packet rq_packet(this->opcode, "test.txt", this->mode);
+
+void Client::send_rq_packet() {
+    option_t blksize_opt = {"blksize", "0", 1024};
+
+    this->options.push_back(blksize_opt);
+
+    RQ_packet rq_packet(this->opcode, this->dest_path, this->mode);
     rq_packet.init_buffer();
     int n = this->send(rq_packet.buffer, rq_packet.len);
 }
 
+
 void Client::WRQ() {
-    int msg_size;
     char buffer[PACKETSIZE] = {0};
+    int msg_size;
     int n;
-    this->send_wrq_packet();
+
+    this->send_rq_packet();
     memset(buffer, 0, PACKETSIZE);
     n = this->recv(buffer, PACKETSIZE);
+    int opcode = get_2byte_num(buffer, 0);
+    Opcode op = (Opcode)opcode;
 
-    ACK_packet::print_buffer(buffer);
+    /**
+     * Only 3 types of respones from server
+     * are possible to our write request
+     */
+    switch(op) {
+        case Opcode::ACK:
+            std::cout << "ACK" << std::endl;
+            ACK_packet::print_buffer(buffer);
+            break;
+        case Opcode::OACK:
+            std::cout << "OACK" << std::endl;
+            break;
+        case Opcode::ERROR:
+            std::cout << "ERROR packet recived" << std::endl;
+            break;
+        default:
+            std::cout << "CAN'T FIND SUITABLE OPCODE" << std::endl;
+            break;
+
+    }
+
 
     // while(msg_size = read(STDIN_FILENO, buffer, PACKETSIZE)) {
 

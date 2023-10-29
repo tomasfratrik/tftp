@@ -35,7 +35,8 @@ enum class Opcode {
     DATA = 3,
     ACK = 4,
     ERROR = 5,
-    NONE = 6
+    OACK = 6,
+    NONE = 7,
 };
 
 enum class Mode {
@@ -54,16 +55,23 @@ class Packet {
 
 };
 
+enum class OptName {
+    BLKSIZE,
+    TSIZE,
+    TIMEOUT,
+    NONE
+};
+
 typedef struct {
     std::string name;
-    std::string str_value;
-    int int_value;
+    std::string str_value = NULL;
+    int value;
 
 } option_t;
 
 class Options {
     public:
-        std::vector<option_t> options;
+        std::vector<option_t> opt_vec;
 };
 
 class RQ_packet : public Packet {

@@ -17,11 +17,13 @@ class Client {
 
     Opcode opcode;
     Mode mode = Mode::OCTET;
+    socklen_t len;
+    // Options opt;
+    std::vector<option_t> options;
+    bool opt_mode = false;
     int blockid;
     int blocksize;
     int sock;
-    socklen_t len;
-    // bool sent_rq = false;
 
     public:
         Client(Args *args);
@@ -31,8 +33,8 @@ class Client {
         int send(char *buffer, int len);
         int recv(char *buffer, int len);
 
-        void send_wrq_packet();
+        void send_rq_packet();
 };
     
 
-#endif // ___CLIENT_HPP_
+#endif // ___CLIENT_HPP__
