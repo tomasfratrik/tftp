@@ -64,8 +64,9 @@ enum class OptName {
 
 typedef struct {
     std::string name;
-    std::string str_value = NULL;
-    int value;
+    std::string value;
+    // std::string str_value = NULL;
+    // int value;
 
 } option_t;
 
@@ -80,8 +81,8 @@ class RQ_packet : public Packet {
         std::string mode;
         char buffer[PACKETSIZE];
         Options options;
-        RQ_packet(Opcode new_opcode, std::string new_filename, Mode new_mode);
-        void init_buffer();
+        RQ_packet(Opcode new_opcode, std::string new_filename, 
+                Mode new_mode, std::vector<option_t> options);
 };
 
 class DATA_packet : public Packet {

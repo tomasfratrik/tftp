@@ -53,12 +53,13 @@ int Client::recv(char *buffer, int len){
 }
 
 void Client::send_rq_packet() {
-    option_t blksize_opt = {.name = "blksize", .value = 1024};
+    // std::string ascii_value = std::to_string(1024);
+    option_t blksize_opt = {.name = "blksize", .value = "1024"};
 
     this->options.push_back(blksize_opt);
 
-    RQ_packet rq_packet(this->opcode, this->dest_path, this->mode);
-    rq_packet.init_buffer();
+    RQ_packet rq_packet(this->opcode, this->dest_path, this->mode, this->options);
+    print_buffer(rq_packet.buffer, rq_packet.len);
     int n = this->send(rq_packet.buffer, rq_packet.len);
 }
 
@@ -92,7 +93,6 @@ void Client::WRQ() {
         default:
             error_exit("CAN'T FIND SUITABLE OPCODE");
             break;
-
     }
 
 }

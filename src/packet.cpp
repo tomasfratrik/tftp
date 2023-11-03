@@ -13,15 +13,12 @@ std::string Packet::convert_mode_to_str(Mode mode) {
     }
 }
 
-RQ_packet::RQ_packet(Opcode new_opcode, std::string new_filename, Mode new_mode) {
+RQ_packet::RQ_packet(Opcode new_opcode, std::string new_filename, 
+                    Mode new_mode, std::vector<option_t> options) {
     opcode = new_opcode;
     filename = new_filename;
     mode = Packet::convert_mode_to_str(new_mode);
-}
 
-
-
-void RQ_packet::init_buffer() {
     *(uint16_t*)(&buffer[0]) = htons((int)opcode);
     len += 2;
     strcpy(&buffer[len], filename.c_str());
@@ -32,8 +29,23 @@ void RQ_packet::init_buffer() {
     len += mode.length();
     buffer[len] = '\0';
     len++;
-
+    for (auto opt : options) {
+        strcpy(&buffer[len], opt.name.c_str());
+        len += opt.name.length();
+        buffer[len] = '\0';
+        len++;
+        strcpy(&buffer[len], opt.value.c_str());
+        len += opt.value.length();
+        buffer[len] = '\0';
+        len++;
+    }
 }
+
+
+
+// void RQ_packet::init_buffer() {
+
+// }
 
 ACK_packet::ACK_packet(Opcode opcode, int block) {
     *(uint16_t*)(&buffer[0]) = htons((int)opcode);
@@ -56,4 +68,5 @@ void print_buffer(char *buffer, int len) {
             std::cout << buffer[i];
         }
     }
+    std::cout << std::endl;
 }
