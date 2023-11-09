@@ -1,5 +1,6 @@
 src/*.o
 xfratr01.zip
+xfratr01.tar
 .vscode
 tftp-client
 tftp-server

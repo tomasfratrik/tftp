@@ -1,29 +1,44 @@
-# tfpt-client and tftp-server Makefile
+# tftp-client and tftp-server Makefile
 # Author: Tomas Fratrik (xfratr01)
 
+LOGIN = xfratr01
+CLIENT = tftp-client
+SERVER = tftp-server
+CC = g++
+CPPFLAGS = -std=c++2a -g
 SRCS := $(wildcard src/*.cpp)
 OBJS := $(SRCS:%.cpp=%.o)
 DEPS := $(SRCS:%.cpp=%.d)
-CC = g++
-CPPFLAGS = -std=c++2a -g
+OBJS_CLIENT := $(filter-out src/$(CLIENT).o, $(OBJS))
+OBJS_SERVER := $(filter-out src/$(SERVER).o, $(OBJS))
 
-OBJS_CLIENT := $(filter-out src/tftp-server.o, $(OBJS))
-OBJS_SERVER := $(filter-out src/tftp-client.o, $(OBJS))
+.PHONY: clean all c client server zipped
 
-all: tftp-client tftp-server
+all: $(CLIENT) $(SERVER) 
 
-tftp-client: $(OBJS_CLIENT)
+client: $(CLIENT)
+$(CLIENT): $(OBJS_CLIENT)
 	$(CC) $(CPPFLAGS) -o $@ $^
 
-tftp-server: $(OBJS_SERVER)
+server: $(server)
+$(SERVER): $(OBJS_SERVER)
 	$(CC) $(CPPFLAGS) -o $@ $^
 
-$(OBJS): src/%.o: src/%.cpp
-	$(CC) $(CPPFLAGS) -c $< -o $@
+%.o: %.cpp
+	$(CC) -c $(CPPFLAGS) -MMD -MP $< -o $@ 
 
-zip:
-	clean
-	zip -r xfratr01.zip *
+-include $(DEPS)
 
+zip: clean
+	@echo "Zipping..."
+	zip -r $(LOGIN).zip *
+
+tar: clean 
+	@echo "Taring..."
+	tar -cvf $(LOGIN).tar * 
+
+c: clean
 clean:
-	rm -f tftp-client tftp-server $(OBJS) $(DEPS)
+	@echo "Cleaning..."
+	@rm -rf $(CLIENT) $(SERVER) $(OBJS) $(DEPS)
+
