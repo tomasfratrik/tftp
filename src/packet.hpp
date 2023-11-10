@@ -8,6 +8,7 @@
 #include <vector>
 #include <utility>
 
+// default block size
 #define BLOCKSIZE 512
 // The maximum size of a request packet
 #define PACKETSIZE 512
@@ -55,6 +56,7 @@ class Packet {
 
 };
 
+
 enum class OptName {
     BLKSIZE,
     TSIZE,
@@ -65,22 +67,13 @@ enum class OptName {
 typedef struct {
     std::string name;
     std::string value;
-    // std::string str_value = NULL;
-    // int value;
-
 } option_t;
-
-class Options {
-    public:
-        std::vector<option_t> opt_vec;
-};
 
 class RQ_packet : public Packet {
     public:
         std::string filename;
         std::string mode;
         char buffer[PACKETSIZE];
-        Options options;
         RQ_packet(Opcode new_opcode, std::string new_filename, 
                 Mode new_mode, std::vector<option_t> options);
 };
@@ -104,7 +97,6 @@ class OACK_packet : public Packet {
     public:
         int block;
         char buffer[PACKETSIZE];
-        Options options;
 };
 
 class ERROR_packet : public Packet {
@@ -113,8 +105,5 @@ class ERROR_packet : public Packet {
         Error error_code;
         std::string error_msg;
 };
-
-
-
 
 #endif // __PACKET_HPP__

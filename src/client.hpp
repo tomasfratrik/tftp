@@ -18,7 +18,6 @@ class Client {
     Opcode opcode;
     Mode mode = Mode::OCTET;
     socklen_t len;
-    // Options opt;
     std::vector<option_t> options;
     bool opt_mode = false;
     int blockid;
