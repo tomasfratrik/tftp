@@ -15,10 +15,10 @@ RQ_packet::RQ_packet(char *buffer){
     this->mode = std::string(&buffer[this->len]);
     this->len += this->mode.length() + 1;
 
-    if (len < PACKETSIZE) {
+    if (len < RQ_PACKETSIZE) {
         std::string opt_name;
         std::string opt_value;
-        while (this->len < PACKETSIZE) {
+        while (this->len < RQ_PACKETSIZE) {
             opt_name = std::string(&buffer[this->len]);
             if (opt_name.empty()) {
                 break;
@@ -68,10 +68,11 @@ ACK_packet::ACK_packet(Opcode opcode, int block) {
     this->len += 4;
 }
 
-void ACK_packet::print_buffer(char *buffer) {
-    std::cout << "opcode: " << ntohs(*(uint16_t*)(&buffer[0])) << std::endl;
-    std::cout << "block: " << ntohs(*(uint16_t*)(&buffer[2])) << std::endl;
+ACK_packet::ACK_packet(char *buffer) {
+    this->opcode = Utils::get_opcode(buffer, 0);
+    this->blockid = Utils::get_2byte_num(buffer, 2);
 }
+
 
 void print_buffer(char *buffer, int len) {
     int opcode = ntohs(*(uint16_t*)(&buffer[0]));

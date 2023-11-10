@@ -11,7 +11,7 @@
 // default block size
 #define BLOCKSIZE 512
 // The maximum size of a request packet
-#define PACKETSIZE 512
+#define RQ_PACKETSIZE 512
 
 typedef struct {
     char ip[INET_ADDRSTRLEN];
@@ -63,6 +63,7 @@ typedef struct {
 class Packet {
     ip_t src;
     public:
+        int blockid;
         Opcode opcode;
         std::vector<option_t> options;
         int len = 0;
@@ -74,38 +75,34 @@ class RQ_packet : public Packet {
     public:
         std::string filename;
         std::string mode;
-        char buffer[PACKETSIZE];
+        char buffer[RQ_PACKETSIZE];
         RQ_packet();
         RQ_packet(char *buffer);
         RQ_packet(Opcode new_opcode, std::string new_filename, 
                 Mode new_mode, std::vector<option_t> options);
-        // void parse(char *buffer);
 };
 
 class DATA_packet : public Packet {
     public:
         char data[BLOCKSIZE];
-        char buffer[PACKETSIZE + BLOCKSIZE];
-        int block;
+        char buffer[RQ_PACKETSIZE + BLOCKSIZE];
         int data_size;
 };
 
 class ACK_packet : public Packet {
     public:
         char buffer[4];
-        int block;
         ACK_packet(Opcode opcode, int block);
-        static void print_buffer(char *buffer);
+        ACK_packet(char *buffer);
 };
 class OACK_packet : public Packet {
     public:
-        int block;
-        char buffer[PACKETSIZE];
+        char buffer[RQ_PACKETSIZE];
 };
 
 class ERROR_packet : public Packet {
     public:
-        char buffer[PACKETSIZE];
+        char buffer[RQ_PACKETSIZE];
         Error error_code;
         std::string error_msg;
 };

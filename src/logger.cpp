@@ -16,3 +16,9 @@ void Logger::log_packet(RQ_packet *packet, ip_t src){
         }
         std::cerr<<std::endl;
 }
+
+void Logger::log_packet(ACK_packet *packet, ip_t src){
+        std::cerr<<"ACK ";
+        std::cerr<<src.ip<<":"<<src.port<<" ";
+        std::cerr<<packet->blockid<<std::endl;
+}

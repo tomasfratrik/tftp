@@ -8,6 +8,8 @@
 #include "./client.hpp"
 #include "./error_exit.hpp"
 #include "./tftp.hpp"
+#include "./packet.hpp"
+#include "./logger.hpp"
 
 
 
@@ -46,7 +48,6 @@ int Client::recv(char *buffer, int len){
     int n = recvfrom(this->sock, buffer, len, 0, 
             (struct sockaddr *)&(this->server), &(this->len));
 
-    std::cout<<"n: "<<n<<std::endl;
     if (n < 0){
         error_exit("recvfrom error");
     }
@@ -65,30 +66,35 @@ void Client::send_rq_packet() {
 
 
 void Client::WRQ() {
-    char buffer[PACKETSIZE] = {0};
-    int msg_size;
-    int n;
+    char buffer[RQ_PACKETSIZE] = {0};
+    Logger logger;
 
     this->send_rq_packet();
-    memset(buffer, 0, PACKETSIZE);
-    n = this->recv(buffer, PACKETSIZE);
-    int opcode = Utils::get_2byte_num(buffer, 0);
-    Opcode op = (Opcode)opcode;
+    memset(buffer, 0, RQ_PACKETSIZE);
+    int n = this->recv(buffer, RQ_PACKETSIZE);
+    Opcode op = Utils::get_opcode(buffer, 0);
 
     /**
      * Only 3 types of respones from server
      * are possible to our write request
      */
+    ip_t src = Utils::find_src(&(this->server));
     switch(op) {
         case Opcode::ACK:
-            std::cout << "ACK" << std::endl;
-            ACK_packet::print_buffer(buffer);
+        {
+            ACK_packet ack_packet(buffer);
+            logger.log_packet(&ack_packet, src);
+        }
             break;
         case Opcode::OACK:
+        {
             std::cout << "OACK" << std::endl;
+        }
             break;
         case Opcode::ERROR:
+        {
             std::cout << "ERROR packet recived" << std::endl;
+        }
             break;
         default:
             error_exit("CAN'T FIND SUITABLE OPCODE");

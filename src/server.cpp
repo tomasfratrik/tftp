@@ -17,7 +17,7 @@ void Server::run(){
     std::cout << "Server running on port " << port << std::endl;
     std::cout << "Root directory: " << root_dirpath << std::endl;
     int opt = 1;
-    char buffer[PACKETSIZE];
+    char buffer[RQ_PACKETSIZE];
     int sock;
     struct sockaddr_in server_addr, client_addr;
 
@@ -36,11 +36,9 @@ void Server::run(){
     int len = sizeof(client_addr);
     int n;
     while (1) {
-        n = recvfrom(sock, (char *)buffer, PACKETSIZE, MSG_WAITALL, (struct sockaddr *)&client_addr, (socklen_t *)&len);
+        n = recvfrom(sock, (char *)buffer, RQ_PACKETSIZE, MSG_WAITALL, (struct sockaddr *)&client_addr, (socklen_t *)&len);
         buffer[n] = '\0';
 
-        // RQ_packet rq_packet;
-        // rq_packet.parse(buffer);
         RQ_packet rq_packet(buffer);
         ip_t src = Utils::find_src(&client_addr);
         logger.log_packet(&rq_packet, src);
