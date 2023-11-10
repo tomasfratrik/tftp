@@ -27,6 +27,11 @@ $(SERVER): $(OBJS_SERVER)
 
 -include $(DEPS)
 
+server:
+	./tftp-server -p 1337 rootdir
+client:
+	./tftp-client -h localhost -p 1337 -t dest_path
+
 zip: clean
 	@echo "Zipping..."
 	zip -r $(LOGIN).zip *

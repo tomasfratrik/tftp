@@ -48,15 +48,6 @@ enum class Mode {
 };
 void print_buffer(char *buffer, int len);
 
-class Packet {
-    public:
-        Opcode opcode;
-        static std::string convert_mode_to_str(Mode mode); 
-        int len = 0;
-
-};
-
-
 enum class OptName {
     BLKSIZE,
     TSIZE,
@@ -69,13 +60,26 @@ typedef struct {
     std::string value;
 } option_t;
 
+class Packet {
+    ip_t src;
+    public:
+        Opcode opcode;
+        std::vector<option_t> options;
+        int len = 0;
+        static std::string convert_mode_to_str(Mode mode); 
+
+};
+
 class RQ_packet : public Packet {
     public:
         std::string filename;
         std::string mode;
         char buffer[PACKETSIZE];
+        RQ_packet();
+        RQ_packet(char *buffer);
         RQ_packet(Opcode new_opcode, std::string new_filename, 
                 Mode new_mode, std::vector<option_t> options);
+        // void parse(char *buffer);
 };
 
 class DATA_packet : public Packet {
@@ -105,5 +109,8 @@ class ERROR_packet : public Packet {
         Error error_code;
         std::string error_msg;
 };
+
+
+
 
 #endif // __PACKET_HPP__

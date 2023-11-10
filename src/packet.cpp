@@ -1,51 +1,66 @@
 #include "./packet.hpp"
+#include "./tftp.hpp"
 
-std::string Packet::convert_mode_to_str(Mode mode) {
-    switch(mode) {
-        case Mode::NETASCII:
-            return "netascii";
-        case Mode::OCTET:
-            return "octet";
-        case Mode::MAIL:
-            return "mail";
-        default:
-            return "";
+RQ_packet::RQ_packet() {
+    filename = "";
+    mode = "";
+    len = 0;
+}
+
+RQ_packet::RQ_packet(char *buffer){
+    this->opcode = Utils::get_opcode(buffer, 0);
+    this->len += 2;
+    this->filename = std::string(&buffer[this->len]);
+    this->len += this->filename.length() + 1;
+    this->mode = std::string(&buffer[this->len]);
+    this->len += this->mode.length() + 1;
+
+    if (len < PACKETSIZE) {
+        std::string opt_name;
+        std::string opt_value;
+        while (this->len < PACKETSIZE) {
+            opt_name = std::string(&buffer[this->len]);
+            if (opt_name.empty()) {
+                break;
+            }
+            this->len += opt_name.length() + 1;
+            opt_value = std::string(&buffer[this->len]);
+            this->len += opt_value.length() + 1;
+            option_t opt = {.name = opt_name, .value = opt_value};
+            this->options.push_back(opt);
+        }
     }
 }
+
 
 RQ_packet::RQ_packet(Opcode new_opcode, std::string new_filename, 
                     Mode new_mode, std::vector<option_t> options) {
-    opcode = new_opcode;
-    filename = new_filename;
-    mode = Packet::convert_mode_to_str(new_mode);
+    this->opcode = new_opcode;
+    this->filename = new_filename;
+    this->mode = Utils::convert_mode_to_str(new_mode);
+    this->options = options;
 
-    *(uint16_t*)(&buffer[0]) = htons((int)opcode);
-    len += 2;
-    strcpy(&buffer[len], filename.c_str());
-    len += filename.length();
-    buffer[len] = '\0';
-    len++;
-    strcpy(&buffer[len], mode.c_str());
-    len += mode.length();
-    buffer[len] = '\0';
-    len++;
-    for (auto opt : options) {
-        strcpy(&buffer[len], opt.name.c_str());
-        len += opt.name.length();
-        buffer[len] = '\0';
-        len++;
-        strcpy(&buffer[len], opt.value.c_str());
-        len += opt.value.length();
-        buffer[len] = '\0';
-        len++;
+    *(uint16_t*)(&this->buffer[0]) = htons((int)this->opcode);
+    this->len += 2;
+    strcpy(&this->buffer[this->len], this->filename.c_str());
+    this->len += this->filename.length();
+    this->buffer[this->len] = '\0';
+    this->len++;
+    strcpy(&this->buffer[this->len], this->mode.c_str());
+    this->len += this->mode.length();
+    this->buffer[this->len] = '\0';
+    this->len++;
+    for (auto opt : this->options) {
+        strcpy(&buffer[this->len], opt.name.c_str());
+        this->len += opt.name.length();
+        this->buffer[this->len] = '\0';
+        this->len++;
+        strcpy(&this->buffer[this->len], opt.value.c_str());
+        this->len += opt.value.length();
+        this->buffer[this->len] = '\0';
+        this->len++;
     }
 }
-
-
-
-// void RQ_packet::init_buffer() {
-
-// }
 
 ACK_packet::ACK_packet(Opcode opcode, int block) {
     *(uint16_t*)(&buffer[0]) = htons((int)opcode);

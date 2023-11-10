@@ -38,13 +38,15 @@ void Server::run(){
     while (1) {
         n = recvfrom(sock, (char *)buffer, PACKETSIZE, MSG_WAITALL, (struct sockaddr *)&client_addr, (socklen_t *)&len);
         buffer[n] = '\0';
-        logger.log(buffer, n,&client_addr);
-        memset(buffer, 0, PACKETSIZE);
-        strcpy(buffer, "Server received message");
+
+        // RQ_packet rq_packet;
+        // rq_packet.parse(buffer);
+        RQ_packet rq_packet(buffer);
+        ip_t src = Utils::find_src(&client_addr);
+        logger.log_packet(&rq_packet, src);
 
         ACK_packet ack_packet(Opcode::ACK, 0);
 
-        // sendto(sock, (const char *)buffer, strlen(buffer), MSG_CONFIRM, (const struct sockaddr *)&client_addr, len);
         sendto(sock, ack_packet.buffer, ack_packet.len, MSG_CONFIRM, (const struct sockaddr *)&client_addr, len);
     }
 

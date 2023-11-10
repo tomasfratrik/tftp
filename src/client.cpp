@@ -46,6 +46,7 @@ int Client::recv(char *buffer, int len){
     int n = recvfrom(this->sock, buffer, len, 0, 
             (struct sockaddr *)&(this->server), &(this->len));
 
+    std::cout<<"n: "<<n<<std::endl;
     if (n < 0){
         error_exit("recvfrom error");
     }
@@ -54,7 +55,9 @@ int Client::recv(char *buffer, int len){
 
 void Client::send_rq_packet() {
     option_t blksize_opt = {.name = "blksize", .value = "1024"};
+    option_t test = {.name = "tsize", .value = "1"};
     this->options.push_back(blksize_opt);
+    this->options.push_back(test);
 
     RQ_packet rq_packet(this->opcode, this->dest_path, this->mode, this->options);
     int n = this->send(rq_packet.buffer, rq_packet.len);
@@ -69,7 +72,7 @@ void Client::WRQ() {
     this->send_rq_packet();
     memset(buffer, 0, PACKETSIZE);
     n = this->recv(buffer, PACKETSIZE);
-    int opcode = get_2byte_num(buffer, 0);
+    int opcode = Utils::get_2byte_num(buffer, 0);
     Opcode op = (Opcode)opcode;
 
     /**
