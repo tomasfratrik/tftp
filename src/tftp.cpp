@@ -29,6 +29,10 @@ int Utils::get_2byte_num(char *buffer, int pos) {
     }
 }
 
+void Utils::set_2byte_num(char *buffer, int pos, int num) {
+    *(uint16_t*)(&buffer[pos]) = htons(num);
+}
+
 std::string Utils::convert_mode_to_str(Mode mode) {
     switch(mode) {
         case Mode::NETASCII:

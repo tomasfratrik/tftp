@@ -40,7 +40,7 @@ RQ_packet::RQ_packet(Opcode new_opcode, std::string new_filename,
     this->mode = Utils::convert_mode_to_str(new_mode);
     this->options = options;
 
-    *(uint16_t*)(&this->buffer[0]) = htons((int)this->opcode);
+    Utils::set_2byte_num(this->buffer, 0, (int)this->opcode);
     this->len += 2;
     strcpy(&this->buffer[this->len], this->filename.c_str());
     this->len += this->filename.length();
@@ -63,26 +63,13 @@ RQ_packet::RQ_packet(Opcode new_opcode, std::string new_filename,
 }
 
 ACK_packet::ACK_packet(Opcode opcode, int block) {
-    *(uint16_t*)(&buffer[0]) = htons((int)opcode);
-    *(uint16_t*)(&buffer[2]) = htons(block);
+    Utils::set_2byte_num(this->buffer, 0, (int)opcode);
+    Utils::set_2byte_num(this->buffer, 2, block);
     this->len += 4;
 }
 
 ACK_packet::ACK_packet(char *buffer) {
     this->opcode = Utils::get_opcode(buffer, 0);
     this->blockid = Utils::get_2byte_num(buffer, 2);
-}
-
-
-void print_buffer(char *buffer, int len) {
-    int opcode = ntohs(*(uint16_t*)(&buffer[0]));
-    std::cout << opcode;
-    for (int i = 2; i < len; i++) {
-        if (buffer[i] == '\0') {
-            std::cout << "0";
-        } else{
-            std::cout << buffer[i];
-        }
-    }
-    std::cout << std::endl;
+    this->len += 4;
 }
