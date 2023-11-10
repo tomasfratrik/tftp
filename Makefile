@@ -9,18 +9,16 @@ CPPFLAGS = -std=c++2a -g
 SRCS := $(wildcard src/*.cpp)
 OBJS := $(SRCS:%.cpp=%.o)
 DEPS := $(SRCS:%.cpp=%.d)
-OBJS_CLIENT := $(filter-out src/$(CLIENT).o, $(OBJS))
-OBJS_SERVER := $(filter-out src/$(SERVER).o, $(OBJS))
+OBJS_CLIENT := $(filter-out src/$(SERVER).o, $(OBJS))
+OBJS_SERVER := $(filter-out src/$(CLIENT).o, $(OBJS))
 
 .PHONY: clean all c client server zipped
 
 all: $(CLIENT) $(SERVER) 
 
-client: $(CLIENT)
 $(CLIENT): $(OBJS_CLIENT)
 	$(CC) $(CPPFLAGS) -o $@ $^
 
-server: $(server)
 $(SERVER): $(OBJS_SERVER)
 	$(CC) $(CPPFLAGS) -o $@ $^
 
