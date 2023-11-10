@@ -3,6 +3,7 @@ src/*.d
 xfratr01.zip
 xfratr01.tar
 .vscode
+.depend
 tftp-client
 tftp-server
 rootdir

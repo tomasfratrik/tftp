@@ -43,5 +43,5 @@ tar: clean
 c: clean
 clean:
 	@echo "Cleaning..."
-	@rm -rf $(CLIENT) $(SERVER) $(OBJS) $(DEPS)
+	@rm -rf $(CLIENT) $(SERVER) $(OBJS) $(DEPS) .depend
 
