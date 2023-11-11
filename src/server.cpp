@@ -16,41 +16,51 @@ Config::Config() {
     // ...
 }
 
+int Server::send(Config *cfg, struct sockaddr_in *dest, char *buffer, int len){
+    int n = sendto(cfg->sock, buffer, len, 0, 
+            (struct sockaddr *)dest, sizeof(*dest));
+
+    if (n < 0){
+        error_exit("sendto error");
+    }
+    return n;
+
+}
+
+int Server::recv(Config *cfg, struct sockaddr_in *dest, char *buffer, int len){
+    cfg->len = sizeof(cfg->client);
+    int n = recvfrom(cfg->sock, buffer, len, 0, 
+            (struct sockaddr *)dest, (socklen_t *)&(cfg->len));
+
+    if (n < 0){
+        error_exit("recvfrom error");
+    }
+    return n;
+}
+
+void Server::respond_to_wrq_rq(Config *cfg){
+    int n;
+    if(!cfg->opt_mode){
+        ACK_packet ack_packet(0);
+        cfg->len = sizeof(cfg->client);
+        n = send(cfg, &cfg->client, ack_packet.buffer, ack_packet.len);
+    }
+    else {
+        OACK_packet oack_packet(cfg->options);
+        cfg->len = sizeof(cfg->client);
+        n = send(cfg, &cfg->client, oack_packet.buffer, oack_packet.len);
+    }
+}
+
 void Server::WRQ(Config *cfg){
     char buffer[RQ_PACKETSIZE];
     int n;
-
-    if(!cfg->opt_mode){
-        // send ack
-        ACK_packet ack_packet(0);
-        cfg->len = sizeof(cfg->client);
-        sendto(cfg->sock, ack_packet.buffer, ack_packet.len, MSG_CONFIRM, 
-                        (const struct sockaddr *)&cfg->client, cfg->len);
-    }
-    else {
-        // send oack
-        OACK_packet oack_packet(cfg->options);
-        cfg->len = sizeof(cfg->client);
-        sendto(cfg->sock, oack_packet.buffer, oack_packet.len, MSG_CONFIRM, 
-                        (const struct sockaddr *)&cfg->client, cfg->len);
-    }
+    this->respond_to_wrq_rq(cfg);
     exit(0);
 
-    ACK_packet ack_packet(0);
-    sendto(cfg->sock, ack_packet.buffer, ack_packet.len, MSG_CONFIRM, 
-                    (const struct sockaddr *)&cfg->client, cfg->len);
-
     while (1) {
-        n = recvfrom(cfg->sock, (char *)buffer, RQ_PACKETSIZE, MSG_WAITALL, 
-                    (struct sockaddr *)&cfg->client, (socklen_t *)&cfg->len);
-        buffer[n] = '\0';
-
-        // cfg->logger.log_packet(&rq_packet, src);
-
-        cfg->len = sizeof(cfg->client);
-        ACK_packet ack_packet(0);
-        sendto(cfg->sock, ack_packet.buffer, ack_packet.len, MSG_CONFIRM, 
-                        (const struct sockaddr *)&cfg->client, cfg->len);
+        // n = recv(cfg, &cfg->client, buffer, RQ_PACKETSIZE);
+        // buffer[n] = '\0';
     }
 }
 
@@ -73,14 +83,12 @@ void Server::run(){
     }
 
     // parse first request packet
-    cfg->len = sizeof(cfg->client);
-    int n = recvfrom(cfg->sock, (char *)buffer, RQ_PACKETSIZE, MSG_WAITALL, 
-                    (struct sockaddr *)&cfg->client, (socklen_t *)&cfg->len);
+    int n = recv(cfg, &cfg->client, buffer, RQ_PACKETSIZE);
+
     buffer[n] = '\0';
     RQ_packet rq_packet(buffer);
     ip_t src = Utils::find_src(&cfg->client);
     cfg->logger.log_packet(&rq_packet, src);
-    //check for options
 
     if(rq_packet.options.empty()){
         cfg->opt_mode = false;

@@ -27,6 +27,11 @@ class Server {
         Server(Args_server *args);
         void WRQ(Config *cfg);
         void run();
+        void respond_to_wrq_rq(Config *cfg);
+        int send(Config *cfg, 
+                        struct sockaddr_in *dest, char *buffer, int len);
+        int recv(Config *cfg, 
+                struct sockaddr_in *dest, char *buffer, int len);
 };
 
 
