@@ -62,8 +62,8 @@ RQ_packet::RQ_packet(Opcode new_opcode, std::string new_filename,
     }
 }
 
-ACK_packet::ACK_packet(Opcode opcode, int block) {
-    Utils::set_2byte_num(this->buffer, 0, (int)opcode);
+ACK_packet::ACK_packet(int block) {
+    Utils::set_2byte_num(this->buffer, 0, (int)Opcode::ACK);
     Utils::set_2byte_num(this->buffer, 2, block);
     this->len += 4;
 }
@@ -75,8 +75,8 @@ ACK_packet::ACK_packet(char *buffer) {
 }
 
 
-OACK_packet::OACK_packet(Opcode opcode, std::vector<option_t> options){
-    this->opcode = opcode;
+OACK_packet::OACK_packet(std::vector<option_t> options){
+    this->opcode = Opcode::OACK;
     this->options = options;
     Utils::set_2byte_num(this->buffer, 0, (int)this->opcode);
     this->len += 2;

@@ -5,7 +5,7 @@
 
 int main(int argc, char** argv){
     Args_server args(argc, argv);
-    Server server(&args);
-    server.run();
+    Server *server = new Server(&args);
+    server->run();
     return 0;
 }

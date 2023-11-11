@@ -92,13 +92,13 @@ class DATA_packet : public Packet {
 class ACK_packet : public Packet {
     public:
         char buffer[4];
-        ACK_packet(Opcode opcode, int block);
+        ACK_packet(int block);
         ACK_packet(char *buffer);
 };
 class OACK_packet : public Packet {
     public:
         char buffer[RQ_PACKETSIZE];
-        OACK_packet(Opcode opcode, std::vector<option_t> options);
+        OACK_packet(std::vector<option_t> options);
         OACK_packet(char *buffer);
 };
 
