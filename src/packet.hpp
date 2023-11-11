@@ -8,10 +8,10 @@
 #include <vector>
 #include <utility>
 
-// default block size
-#define BLOCKSIZE 512
+#define BLOCKSIZE 1024 
 // The maximum size of a request packet
 #define RQ_PACKETSIZE 512
+#define DEFAULT_BLOCKSIZE 512
 
 typedef struct {
     char ip[INET_ADDRSTRLEN];
@@ -85,7 +85,7 @@ class RQ_packet : public Packet {
 class DATA_packet : public Packet {
     public:
         char data[BLOCKSIZE];
-        char buffer[RQ_PACKETSIZE + BLOCKSIZE];
+        char buffer[4 + BLOCKSIZE];
         int data_size;
 };
 
@@ -98,6 +98,8 @@ class ACK_packet : public Packet {
 class OACK_packet : public Packet {
     public:
         char buffer[RQ_PACKETSIZE];
+        OACK_packet(Opcode opcode, std::vector<option_t> options);
+        OACK_packet(char *buffer);
 };
 
 class ERROR_packet : public Packet {

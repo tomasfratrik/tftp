@@ -19,9 +19,9 @@ class Client {
     Mode mode = Mode::OCTET;
     socklen_t len;
     std::vector<option_t> options;
-    bool opt_mode = false;
-    int blockid;
-    int blocksize;
+    bool opt_mode = true;
+    int blockid = 0;
+    int blocksize = 0;
     int sock;
 
     public:
@@ -31,7 +31,6 @@ class Client {
         void WRQ();
         int send(char *buffer, int len);
         int recv(char *buffer, int len);
-
         void send_rq_packet();
 };
     

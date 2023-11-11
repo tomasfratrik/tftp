@@ -24,7 +24,6 @@ Client::Client(Args *args){
         opcode = Opcode::RRQ;
     }
     mode = Mode::OCTET;
-    blocksize = BLOCKSIZE;
 }
 
 void Client::print_status() {
@@ -84,11 +83,13 @@ void Client::WRQ() {
         {
             ACK_packet ack_packet(buffer);
             logger.log_packet(&ack_packet, src);
+            this->blocksize = DEFAULT_BLOCKSIZE;
         }
             break;
         case Opcode::OACK:
         {
-            std::cout << "OACK" << std::endl;
+            OACK_packet oack_packet(buffer);
+            logger.log_packet(&oack_packet, src);
         }
             break;
         case Opcode::ERROR:

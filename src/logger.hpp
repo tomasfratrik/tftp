@@ -14,6 +14,7 @@ class Logger {
     public: 
         static void log_packet(RQ_packet *packet, ip_t src);
         static void log_packet(ACK_packet *packet, ip_t src);
+        static void log_packet(OACK_packet *packet, ip_t src);
 };
 
 #endif // __LOGGER_HPP__

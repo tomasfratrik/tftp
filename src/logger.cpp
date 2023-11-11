@@ -22,3 +22,11 @@ void Logger::log_packet(ACK_packet *packet, ip_t src){
         std::cerr<<src.ip<<":"<<src.port<<" ";
         std::cerr<<packet->blockid<<std::endl;
 }
+
+void Logger::log_packet(OACK_packet *packet, ip_t src){
+    std::cerr<<"OACK ";
+    std::cerr<<src.ip<<":"<<src.port<<" ";
+    for (auto opt : packet->options){
+        std::cerr<<" "<<opt.name<<"="<<opt.value;
+    }
+}
