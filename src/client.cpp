@@ -131,7 +131,7 @@ void Client::WRQ() {
 
     while (std::cin.read(file_buffer, this->blocksize) || std::cin.gcount() > 0) {
         bytes_read = std::cin.gcount();
-        DATA_packet data_packet(this->blocksize++, file_buffer, bytes_read);
+        DATA_packet data_packet(this->blockid++, file_buffer, bytes_read);
 
         n = this->send(data_packet.buffer, data_packet.len);
 
@@ -147,8 +147,6 @@ void Client::WRQ() {
     if (bytes_read == BLOCKSIZE) { 
         this->send_empty_data_packet_recv_ack();
     }
-    std::cout <<"EOF"<<std::endl;
-
 }
 
 void Client::setTimeout(int seconds)

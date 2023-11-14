@@ -59,18 +59,13 @@ void Server::WRQ(Config *cfg){
     int n;
     Logger logger;
     this->respond_to_wrq_rq(cfg);
-    // n = recv(cfg, &cfg->client, buffer, RQ_PACKETSIZE);
-    // exit(0);
 
     while (true) {
         n = recv(cfg, &cfg->client, buffer, SERVER_BLOCKSIZE+4);
-        std::cout <<"n: " << n << std::endl;
         int buffer_len = n;
         DATA_packet data_packet(buffer, n);
         ip_t src = Utils::find_src(&cfg->client);
         logger.log_packet(&data_packet, src);
-
-
 
         std::string filepath = this->root_dirpath + "/" + cfg->filename;
         std::ofstream outfile(filepath, std::ios::binary | std::ios::app);
