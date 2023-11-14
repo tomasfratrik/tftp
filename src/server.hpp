@@ -19,6 +19,8 @@ class Config {
         int len;
         int sock;
         bool opt_mode;
+        ip_t src;
+        ip_t dest;
         std::string filename;
         std::string mode;
         std::vector<option_t> options;

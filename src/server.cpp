@@ -84,14 +84,14 @@ void Server::WRQ(Config *cfg){
     char buffer[SERVER_BLOCKSIZE + 4] = {0};
     int n;
     Logger logger;
+    cfg->src = Utils::find_src(&cfg->client);
     this->respond_to_wrq_rq(cfg);
 
     while (true) {
         n = recv(cfg, &cfg->client, buffer, SERVER_BLOCKSIZE+4);
         int buffer_len = n;
         DATA_packet data_packet(buffer, n);
-        ip_t src = Utils::find_src(&cfg->client);
-        logger.log_packet(&data_packet, src);
+        logger.log_packet(&data_packet, cfg->src, cfg->dest);
 
         std::string filepath = this->root_dirpath + "/" + cfg->filename;
         std::ofstream outfile(filepath, std::ios::binary | std::ios::app);
@@ -122,6 +122,7 @@ void Server::run(){
     cfg->server.sin_family = AF_INET;
     cfg->server.sin_addr.s_addr = htonl(INADDR_ANY);  
     cfg->server.sin_port = htons(this->port);
+    cfg->dest.port = this->port;
 
     if ((cfg->sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
         error_exit("socket creation failed");
@@ -135,8 +136,7 @@ void Server::run(){
 
     // parse first request packet
     int n = recv(cfg, &cfg->client, buffer, RQ_PACKETSIZE);
-
-    // buffer[n] = '\0';
+    buffer[n] = '\0';
     RQ_packet rq_packet(buffer);
     ip_t src = Utils::find_src(&cfg->client);
     cfg->logger.log_packet(&rq_packet, src);

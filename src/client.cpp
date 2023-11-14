@@ -190,22 +190,16 @@ void Client::WRQ() {
     //
     option_t blksize_opt = {.name = "blksize", .value = "1024"};
     option_t timeout_opt = {.name = "timeout", .value = "1"};
-    option_t test = {.name = "tsize", .value = "1"};
+    option_t tsize_opt = {.name = "tsize", .value = "1"};
     this->options.push_back(blksize_opt);
-    this->options.push_back(test);
     this->options.push_back(timeout_opt);
+    // this->options.push_back(tsize_opt);
     RQ_packet rq_packet(this->opcode, this->dest_path, this->mode, this->options);
     n = this->send_and_recv(rq_packet.buffer, rq_packet.len, buffer, RQ_PACKETSIZE);
-
     this->react_to_first_response(buffer);
 
-    /**
-     * Only 3 types of respones from server
-     * are possible to our write request
-     */
     char file_buffer[this->blocksize];
     std::streamsize bytes_read;
-
     while (std::cin.read(file_buffer, this->blocksize) || std::cin.gcount() > 0) {
         bytes_read = std::cin.gcount();
         DATA_packet data_packet(++this->blockid, file_buffer, bytes_read);

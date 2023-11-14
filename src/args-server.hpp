@@ -1,10 +1,11 @@
 #ifndef __ARGS_S_HPP__
 #define __ARGS_S_HPP__
 #include <string>
+#include "./tftp.hpp"
 
 class Args_server {
     public:
-        int port = 1337;
+        int port = DEFAULT_PORT;
         std::string root_dirpath;
         Args_server(int argc, char** argv);
 };
