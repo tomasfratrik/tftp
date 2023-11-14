@@ -36,4 +36,5 @@ void Logger::log_packet(DATA_packet *packet, ip_t src) {
     std::cerr<<"DATA ";
     std::cerr<<src.ip<<":"<<src.port<<" ";
     std::cerr<<packet->blockid<<" ";
+    std::cerr<<std::endl;
 }

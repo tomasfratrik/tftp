@@ -3,6 +3,8 @@
 #include "./packet.hpp"
 
 #define DEFAULT_PORT 69
+#define DEFAULT_TIMEOUT 1
+#define MAX_TIMEOUT_TRIES 3 
 
 class Utils {
     public:

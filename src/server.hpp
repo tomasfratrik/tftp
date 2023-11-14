@@ -13,7 +13,9 @@ class Config {
         struct sockaddr_in server, client;
         Logger logger;
         int blocksize = DEFAULT_BLOCKSIZE;
-        int blockid;
+        int blockid = 0;
+        struct timeval timeout;
+        int curr_timeout;
         int len;
         int sock;
         bool opt_mode;
@@ -21,6 +23,7 @@ class Config {
         std::string mode;
         std::vector<option_t> options;
         Config();
+        void setTimeout(int seconds);
 };
 
 class Server {
@@ -33,8 +36,9 @@ class Server {
         void respond_to_wrq_rq(Config *cfg);
         int send(Config *cfg, 
                         struct sockaddr_in *dest, char *buffer, int len);
-        int recv(Config *cfg, 
-                struct sockaddr_in *dest, char *buffer, int len);
+        // int recv(Config *cfg, 
+        //         struct sockaddr_in *dest, char *buffer, int len);
+        int recv(Config *cfg, struct sockaddr_in *dest, char *buffer, int buffer_len);
 };
 
 

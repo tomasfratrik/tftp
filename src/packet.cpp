@@ -131,3 +131,24 @@ DATA_packet::DATA_packet(char *buffer, int packet_len) {
     memcpy(this->data, &buffer[4], this->data_size);
     this->len += packet_len;
 }
+
+ERROR_packet::ERROR_packet(Error error_code, std::string error_msg) {
+    this->opcode = Opcode::ERROR;
+    this->error_code = error_code;
+    Utils::set_2byte_num(this->buffer, 0, (int)this->opcode);
+    Utils::set_2byte_num(this->buffer, 2, (int)this->error_code);
+    if (error_msg.length() > ERROR_MSG_SIZE-5) {
+        // ...
+    }
+    memcpy(&this->buffer[4], error_msg.c_str(), error_msg.length());
+    this->len += 4 + error_msg.length();
+    this->buffer[this->len] = '\0';
+}
+
+ERROR_packet::ERROR_packet(char *buffer) {
+    this->opcode = Utils::get_opcode(buffer, 0);
+    this->error_code = (Error)Utils::get_2byte_num(buffer, 2);
+    this->error_msg = std::string(&buffer[4]);
+    this->len += 4 + this->error_msg.length();
+    this->buffer[this->len] = '\0';
+}

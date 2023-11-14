@@ -4,7 +4,7 @@
 #include "./packet.hpp"
 
 void print_usage(){
-    std::cerr << 
+    std::cout << 
     "Usage: ./tftp-client -h hostname [-p port] [-f filepath] -t dest_path\n" 
     "Options:\n"
     "\t -h hostname: hostname of server\n"
@@ -18,7 +18,7 @@ void print_usage(){
 }
 
 void print_usage_server(){
-    std::cerr << 
+    std::cout << 
     "Usage: ./tftp-server [-p port] root_dirpath\n" 
     "Options:\n"
     "\t -p port: port to listen on\n"
@@ -28,6 +28,6 @@ void print_usage_server(){
 }
 
 void error_exit(std::string msg){
-    std::cerr << "ERROR: " << msg << std::endl;
+    std::cout << "ERROR: " << msg << std::endl;
     exit(1);
 }

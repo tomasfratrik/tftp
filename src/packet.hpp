@@ -12,6 +12,7 @@
 // The maximum size of a request packet
 #define RQ_PACKETSIZE 512
 #define DEFAULT_BLOCKSIZE 512
+#define ERROR_MSG_SIZE 512
 
 typedef struct {
     char ip[INET_ADDRSTRLEN];
@@ -109,9 +110,11 @@ class OACK_packet : public Packet {
 
 class ERROR_packet : public Packet {
     public:
-        char buffer[RQ_PACKETSIZE];
+        char buffer[ERROR_MSG_SIZE];
         Error error_code;
         std::string error_msg;
+        ERROR_packet(Error error_code, std::string error_msg);
+        ERROR_packet(char *buffer);
 };
 
 

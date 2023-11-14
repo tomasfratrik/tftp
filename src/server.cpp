@@ -28,26 +28,52 @@ int Server::send(Config *cfg, struct sockaddr_in *dest, char *buffer, int len){
 
 }
 
-int Server::recv(Config *cfg, struct sockaddr_in *dest, char *buffer, int len){
-    cfg->len = sizeof(cfg->client);
-    int n = recvfrom(cfg->sock, buffer, len, 0, 
-            (struct sockaddr *)dest, (socklen_t *)&(cfg->len));
+// int Server::recv(Config *cfg, struct sockaddr_in *dest, char *buffer, int len){
+//     cfg->len = sizeof(cfg->client);
+//     int n = recvfrom(cfg->sock, buffer, len, 0, 
+//             (struct sockaddr *)dest, (socklen_t *)&(cfg->len));
 
-    if (n < 0) {
-        error_exit("recvfrom error");
+//     if (n < 0) {
+//         error_exit("recvfrom error");
+//     }
+//     return n;
+// }
+int Server::recv(Config *cfg, struct sockaddr_in *dest, char *buffer, int buffer_len){
+    fd_set read_fds;
+    FD_ZERO(&read_fds);
+    FD_SET(cfg->sock, &read_fds);
+
+    sockaddr_in inaddr;
+    cfg->len = sizeof(cfg->client);
+    int sel = select(cfg->sock + 1, &read_fds, nullptr, nullptr, &cfg->timeout);
+    if (sel < 0) {
+        // differ from possible -1 from recvfrom
+        return -2;
     }
+
+    int n = recvfrom(cfg->sock, buffer, buffer_len, 0, 
+            (struct sockaddr *)dest, (socklen_t *)&(cfg->len));
     return n;
 }
 
+void Config::setTimeout(int seconds)
+{
+    this->curr_timeout = seconds;
+    this->timeout.tv_sec = seconds;
+    this->timeout.tv_usec = 0;
+
+	setsockopt(this->sock, SOL_SOCKET, SO_RCVTIMEO, &this->timeout, sizeof(timeval));
+}
+
+
 void Server::respond_to_wrq_rq(Config *cfg){
     int n;
-    if (!cfg->opt_mode) { //just send ack
+    if (!cfg->opt_mode) { //just send ack if no options
         ACK_packet ack_packet(0);
         cfg->len = sizeof(cfg->client);
         n = send(cfg, &cfg->client, ack_packet.buffer, ack_packet.len);
     }
     else {
-        // print options
         OACK_packet oack_packet(cfg->options);
         cfg->len = sizeof(cfg->client);
         n = send(cfg, &cfg->client, oack_packet.buffer, oack_packet.len);
@@ -77,7 +103,7 @@ void Server::WRQ(Config *cfg){
         outfile.write(data_packet.data, data_packet.data_size);
 
         // cfg->blockid++;
-        ACK_packet ack_packet(cfg->blockid);
+        ACK_packet ack_packet(++cfg->blockid);
         n = send(cfg, &cfg->client, ack_packet.buffer, ack_packet.len);
 
         if (buffer_len-4 < SERVER_BLOCKSIZE) {
@@ -104,11 +130,13 @@ void Server::run(){
     if (bind(cfg->sock, (struct sockaddr *)&cfg->server, sizeof(cfg->server)) < 0) {
         error_exit("bind\n (port probably already in use)");
     }
+    
+    // cfg->setTimeout(DEFAULT_TIMEOUT);
 
     // parse first request packet
     int n = recv(cfg, &cfg->client, buffer, RQ_PACKETSIZE);
 
-    buffer[n] = '\0';
+    // buffer[n] = '\0';
     RQ_packet rq_packet(buffer);
     ip_t src = Utils::find_src(&cfg->client);
     cfg->logger.log_packet(&rq_packet, src);
