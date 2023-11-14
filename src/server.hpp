@@ -5,12 +5,15 @@
 #include "./logger.hpp"
 #include "./tftp.hpp"
 
+#define SERVER_BLOCKSIZE 1024
+
 class Config {
     public:
         char buffer[RQ_PACKETSIZE];
         struct sockaddr_in server, client;
         Logger logger;
         int blocksize = DEFAULT_BLOCKSIZE;
+        int blockid;
         int len;
         int sock;
         bool opt_mode;

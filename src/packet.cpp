@@ -109,3 +109,21 @@ OACK_packet::OACK_packet(char *buffer){
         this->options.push_back(opt);
     }
 }
+
+DATA_packet::DATA_packet(int blockid, char *data, int data_size) {
+    this->opcode = Opcode::DATA;
+    this->blockid = blockid;
+    this->data_size = data_size;
+    Utils::set_2byte_num(this->buffer, 0, (int)this->opcode);
+    Utils::set_2byte_num(this->buffer, 2, this->blockid);
+    memcpy(&this->buffer[4], data, this->data_size);
+    this->len += 4 + this->data_size;
+}
+
+DATA_packet::DATA_packet(char *buffer, int packet_len) {
+    this->opcode = Utils::get_opcode(buffer, 0);
+    this->blockid = Utils::get_2byte_num(buffer, 2);
+    this->data_size = packet_len - 4;
+    memcpy(this->data, &buffer[4], this->data_size);
+    this->len += packet_len;
+}

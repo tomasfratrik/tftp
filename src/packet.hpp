@@ -84,9 +84,12 @@ class RQ_packet : public Packet {
 
 class DATA_packet : public Packet {
     public:
-        char data[BLOCKSIZE];
-        char buffer[4 + BLOCKSIZE];
+        char data[BLOCKSIZE] = {0};
+        char buffer[4 + BLOCKSIZE] = {0};
         int data_size;
+        DATA_packet(int blockid, char *data, int data_size);
+        DATA_packet(char *buffer, int packet_len);
+        // DATA_packet(char *buffer);
 };
 
 class ACK_packet : public Packet {

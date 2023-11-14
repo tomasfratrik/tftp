@@ -55,12 +55,25 @@ int Client::recv(char *buffer, int len){
 
 void Client::send_rq_packet() {
     option_t blksize_opt = {.name = "blksize", .value = "1024"};
+    option_t timeout_opt = {.name = "timeout", .value = "1"};
     option_t test = {.name = "tsize", .value = "1"};
     this->options.push_back(blksize_opt);
     this->options.push_back(test);
+    this->options.push_back(timeout_opt);
 
     RQ_packet rq_packet(this->opcode, this->dest_path, this->mode, this->options);
     int n = this->send(rq_packet.buffer, rq_packet.len);
+}
+
+void Client::send_empty_data_packet_recv_ack() {
+    Logger logger;
+    char buffer[RQ_PACKETSIZE] = {0};
+    DATA_packet data_packet(this->blockid, nullptr, 0);
+    int n = this->send(data_packet.buffer, data_packet.len);
+    n = this->recv(buffer, RQ_PACKETSIZE);
+    ACK_packet ack_packet(buffer);
+    ip_t src = Utils::find_src(&(this->server));
+    logger.log_packet(&ack_packet, src);
 }
 
 
@@ -90,6 +103,16 @@ void Client::WRQ() {
         {
             OACK_packet oack_packet(buffer);
             logger.log_packet(&oack_packet, src);
+            for (auto opt : oack_packet.options) {
+                if (opt.name == "blksize") {
+                    if (opt.value == "1024") {
+                        this->blocksize = 1024;
+                    } else {
+                        // TODO: send error packet ...
+                        // this->blocksize = std::stoi(opt.value);
+                    }
+                }
+            }
         }
             break;
         case Opcode::ERROR:
@@ -101,8 +124,44 @@ void Client::WRQ() {
             error_exit("CAN'T FIND SUITABLE OPCODE");
             break;
     }
+    char file_buffer[this->blocksize];
+    std::streamsize bytes_read;
+
+    while (std::cin.read(file_buffer, this->blocksize) || std::cin.gcount() > 0) {
+        bytes_read = std::cin.gcount();
+        DATA_packet data_packet(this->blocksize++, file_buffer, bytes_read);
+
+        n = this->send(data_packet.buffer, data_packet.len);
+
+        n = this->recv(buffer, RQ_PACKETSIZE);
+        ACK_packet ack_packet(buffer);
+        src = Utils::find_src(&(this->server));
+        logger.log_packet(&ack_packet, src);
+
+        std::cin.clear();
+    }
+    // if last read chunk was exactly blocksize
+    // send empty packet
+    if (bytes_read == BLOCKSIZE) { 
+        this->send_empty_data_packet_recv_ack();
+    }
+    std::cout <<"EOF"<<std::endl;
 
 }
+
+void Client::setTimeout(int seconds)
+{
+	int result;
+	timeval timeout;
+	timeout.tv_sec = seconds;
+	timeout.tv_usec = 0;
+
+	this->timeout = seconds;
+
+	setsockopt(this->sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeval));
+}
+
+
 
 void Client::run() {
 
@@ -126,6 +185,9 @@ void Client::run() {
     if((this->sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0){
         error_exit("socket creation error");
     }
+
+    // set default timeout
+    this->setTimeout(1);
 
     if(opcode == Opcode::WRQ){
         this->WRQ();

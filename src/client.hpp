@@ -18,6 +18,7 @@ class Client {
     Opcode opcode;
     Mode mode = Mode::OCTET;
     socklen_t len;
+    int timeout;
     std::vector<option_t> options;
     bool opt_mode = true;
     int blockid = 0;
@@ -32,6 +33,8 @@ class Client {
         int send(char *buffer, int len);
         int recv(char *buffer, int len);
         void send_rq_packet();
+        void send_empty_data_packet_recv_ack();
+        void setTimeout(int seconds);
 };
     
 

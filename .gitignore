@@ -1,5 +1,6 @@
 src/*.o
 src/*.d
+files
 xfratr01.zip
 xfratr01.tar
 .vscode

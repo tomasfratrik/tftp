@@ -31,3 +31,9 @@ void Logger::log_packet(OACK_packet *packet, ip_t src){
     }
     std::cerr<<std::endl;
 }
+
+void Logger::log_packet(DATA_packet *packet, ip_t src) {
+    std::cerr<<"DATA ";
+    std::cerr<<src.ip<<":"<<src.port<<" ";
+    std::cerr<<packet->blockid<<" ";
+}
