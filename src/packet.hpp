@@ -77,9 +77,11 @@ class RQ_packet : public Packet {
         std::string mode;
         char buffer[RQ_PACKETSIZE];
         RQ_packet();
+        ~RQ_packet();
         RQ_packet(char *buffer);
         RQ_packet(Opcode new_opcode, std::string new_filename, 
                 Mode new_mode, std::vector<option_t> options);
+
 };
 
 class DATA_packet : public Packet {

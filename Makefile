@@ -28,9 +28,9 @@ $(SERVER): $(OBJS_SERVER)
 -include $(DEPS)
 
 server:
-	./tftp-server -p 1337 rootdir
+	sudo ./tftp-server rootdir
 client:
-	./tftp-client -h localhost -p 1337 -t dest_path
+	sudo ./tftp-client -h localhost -t dest_path
 
 zip: clean
 	@echo "Zipping..."

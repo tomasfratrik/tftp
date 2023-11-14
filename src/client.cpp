@@ -44,8 +44,10 @@ int Client::send(char *buffer, int len){
 }
 
 int Client::recv(char *buffer, int len){
+    sockaddr_in inaddr;
+    this->len = sizeof(inaddr);
     int n = recvfrom(this->sock, buffer, len, 0, 
-            (struct sockaddr *)&(this->server), &(this->len));
+            (struct sockaddr *) &inaddr, &(this->len));
 
     if (n < 0){
         error_exit("recvfrom error");
