@@ -3,6 +3,8 @@
 #include <unistd.h>
 #include <string.h>
 #include <fstream>
+#include <thread>
+#include <random>
 #include "./server.hpp"
 #include "./args-server.hpp"
 #include "./packet.hpp"
@@ -113,31 +115,30 @@ void Server::WRQ(Config *cfg){
     }
 }
 
+void Server::handle_client(sockaddr_in client_address, char recv_buffer[RQ_PACKETSIZE], int bytes_read) {
+    // randomly generate new port
+    // TODO: can't we generate with assigning 0, so os will assign random port?
+    std::random_device rd;
+    std::default_random_engine generator(rd());
+    std::uniform_int_distribution<int> distribution(10000, 65535);
+    int new_port = distribution(generator);
 
-void Server::run(){
-    char buffer[RQ_PACKETSIZE];
-
-
+    // create new socket and bind it with address
     Config *cfg = new Config();
-    cfg->server.sin_family = AF_INET;
-    cfg->server.sin_addr.s_addr = htonl(INADDR_ANY);  
-    cfg->server.sin_port = htons(this->port);
-    cfg->dest.port = this->port;
-
     if ((cfg->sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
         error_exit("socket creation failed");
     }
+    cfg->server.sin_family = AF_INET;
+    cfg->server.sin_addr.s_addr = htonl(INADDR_ANY);  
+    cfg->server.sin_port = htons(new_port);
+    cfg->dest.port = new_port;
 
     if (bind(cfg->sock, (struct sockaddr *)&cfg->server, sizeof(cfg->server)) < 0) {
         error_exit("bind\n (port probably already in use)");
     }
-    
-    // cfg->setTimeout(DEFAULT_TIMEOUT);
 
-    // parse first request packet
-    int n = recv(cfg, &cfg->client, buffer, RQ_PACKETSIZE);
-    buffer[n] = '\0';
-    RQ_packet rq_packet(buffer);
+    cfg->client = client_address;
+    RQ_packet rq_packet(recv_buffer);
     ip_t src = Utils::find_src(&cfg->client);
     cfg->logger.log_packet(&rq_packet, src);
 
@@ -162,8 +163,7 @@ void Server::run(){
     }
     cfg->filename = rq_packet.filename;
     cfg->mode = rq_packet.mode;
-
-
+    cfg->setTimeout(DEFAULT_TIMEOUT);
 
     if (rq_packet.opcode == Opcode::WRQ) {
         this->WRQ(cfg);
@@ -175,5 +175,47 @@ void Server::run(){
         error_exit("Invalid opcode");
     }
 
+}
 
+void Server::run(){
+    
+    // cerate server socket
+    int serverSock;
+    if ((serverSock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        error_exit("socket creation failed");
+    }
+
+    // create server address
+    sockaddr_in server_address{};
+    server_address.sin_family = AF_INET;
+    server_address.sin_addr.s_addr = htonl(INADDR_ANY);  
+    server_address.sin_port = htons(this->port);
+    
+
+    // bind socket and address
+    if (bind(serverSock, reinterpret_cast<sockaddr*>(&server_address), sizeof(server_address)) < 0) {
+        error_exit("binding socket");
+    }
+
+    // handle incoming clients, and create a new thread for each client
+    while(true){
+        char buffer[RQ_PACKETSIZE] = {0};
+        sockaddr_in client_address{};
+        socklen_t client_address_len = sizeof(client_address);
+
+        int bytes_read = recvfrom(serverSock, buffer, RQ_PACKETSIZE, 0,
+                            reinterpret_cast<sockaddr*>(&client_address), &client_address_len);
+        buffer[bytes_read] = '\0';
+
+        if (bytes_read < 0) {
+            error_exit("recvfrom error, bytes read < 0");
+        }
+        std::cout << "New incoming client" << std::endl;
+
+        char send_buffer[RQ_PACKETSIZE] = {0};
+        memcpy(send_buffer, buffer, RQ_PACKETSIZE);
+        std::thread clientThread(&Server::handle_client, this, client_address, 
+                                send_buffer, bytes_read);
+        clientThread.detach();
+    } 
 }

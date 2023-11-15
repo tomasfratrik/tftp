@@ -45,8 +45,8 @@ int Client::recv(char *buffer, int len){
     FD_ZERO(&read_fds);
     FD_SET(this->sock, &read_fds);
 
-    sockaddr_in inaddr;
-    this->len = sizeof(inaddr);
+    sockaddr_in server_address;
+    this->len = sizeof(server_address);
     int sel = select(this->sock + 1, &read_fds, nullptr, nullptr, &this->timeout);
     if (sel < 0) {
         // differ from possible -1 from recvfrom
@@ -54,7 +54,12 @@ int Client::recv(char *buffer, int len){
     }
 
     int n = recvfrom(this->sock, buffer, len, 0, 
-            (struct sockaddr *) &inaddr, &(this->len));
+            (struct sockaddr *) &server_address, &(this->len));
+    
+    this->port = ntohs(server_address.sin_port);
+    this->server.sin_port = htons(this->port);
+    this->src.port = this->port;
+    // this->serve
     return n;
 }
 
@@ -246,10 +251,9 @@ void Client::setTimeout(int seconds)
 }
 
 void Client::run() {
-
     // check port limits
     if (this->port < 0 || this->port > 65535) {
-        error_exit("wrong port");
+        error_exit("wrong port (use 0-65535)");
     }
 
     memset(&(this->server),0,sizeof(this->server));

@@ -17,13 +17,13 @@ OBJS_SERVER := $(filter-out src/$(CLIENT).o, $(OBJS))
 all: $(CLIENT) $(SERVER) 
 
 $(CLIENT): $(OBJS_CLIENT)
-	$(CC) $(CPPFLAGS) -o $@ $^
+	$(CC) $(CPPFLAGS) -o $@ $^ -pthread
 
 $(SERVER): $(OBJS_SERVER)
-	$(CC) $(CPPFLAGS) -o $@ $^
+	$(CC) $(CPPFLAGS) -o $@ $^ -pthread
 
 %.o: %.cpp
-	$(CC) -c $(CPPFLAGS) -MMD -MP $< -o $@ 
+	$(CC) -c $(CPPFLAGS) -MMD -MP $< -o $@
 
 -include $(DEPS)
 
