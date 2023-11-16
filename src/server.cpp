@@ -128,6 +128,7 @@ void Server::handle_client(sockaddr_in client_address, char recv_buffer[RQ_PACKE
     if ((cfg->sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
         error_exit("socket creation failed");
     }
+    
     cfg->server.sin_family = AF_INET;
     cfg->server.sin_addr.s_addr = htonl(INADDR_ANY);  
     cfg->server.sin_port = htons(new_port);

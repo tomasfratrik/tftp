@@ -55,11 +55,20 @@ int Client::recv(char *buffer, int len){
 
     int n = recvfrom(this->sock, buffer, len, 0, 
             (struct sockaddr *) &server_address, &(this->len));
-    
-    this->port = ntohs(server_address.sin_port);
-    this->server.sin_port = htons(this->port);
-    this->src.port = this->port;
-    // this->serve
+
+    int incoming_port = ntohs(server_address.sin_port);
+
+    //if port changed again send error
+    if (this->port_changed && this->port != incoming_port) {
+        // ERROR
+    }
+    else if (this->port_changed == false) {
+        this->port = ntohs(server_address.sin_port);
+        this->server.sin_port = htons(this->port);
+        this->src.port = this->port;
+        this->port_changed = true;
+    }
+
     return n;
 }
 
@@ -229,9 +238,6 @@ void Client::WRQ() {
                 error_exit("CAN'T FIND SUITABLE OPCODE");
                 break;
         }
-
-
-
         std::cin.clear();
     }
     // if last read chunk was exactly blocksize

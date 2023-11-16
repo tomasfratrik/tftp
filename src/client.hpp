@@ -16,6 +16,7 @@ class Client {
     std::string dest_path;
     std::string hostname;
     int port = DEFAULT_PORT;
+    bool port_changed = false;
 
     Opcode opcode;
     Mode mode = Mode::OCTET;
