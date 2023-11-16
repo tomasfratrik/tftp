@@ -194,28 +194,97 @@ void Client::react_to_first_response(char *buffer) {
     }
 }
 
+void Client::netascii_wrq() {
+    // Read the entire stdin into a string
+    std::string input((std::istreambuf_iterator<char>(std::cin)), std::istreambuf_iterator<char>());
+    Utils::convert_string_to_netascii(&input);
+    ssize_t input_size = input.length();
+    ssize_t curr_size = 0;
+    // print input
+
+    char file_buffer[this->blocksize];
+    bool send_empty_packet = false;
+
+    int iter = 0;
+    int bytes_read = 0;
+    for (curr_size = 0; curr_size < input_size; curr_size++){
+        // std::cout<<"test"<<std::endl;
+        file_buffer[iter] = input[curr_size]; 
+        bytes_read++;
+        iter++;
+        if (iter == this->blocksize || curr_size == input_size-1) {
+            DATA_packet data_packet(++this->blockid, file_buffer, bytes_read);
+            char buffer[RQ_PACKETSIZE] = {0};
+            int n = this->send_and_recv(data_packet.buffer, data_packet.len, 
+                                buffer, RQ_PACKETSIZE);
+            // check what we got from server
+            Opcode op = Utils::get_opcode(buffer, 0);
+            switch(op) {
+                case Opcode::ACK:
+                {
+                    ACK_packet ack_packet(buffer);
+                    logger.log_packet(&ack_packet, this->src);
+                }
+                    break;
+                case Opcode::ERROR:
+                {
+                    std::cout << "ERROR packet recived" << std::endl;
+                }
+                    break;
+                default:
+                    error_exit("CAN'T FIND SUITABLE OPCODE");
+                    break;
+            }
+            if (iter == this->blocksize && curr_size == input_size-1) {
+                send_empty_packet = true;
+            }
+            iter = 0;          
+            bytes_read = 0;
+        }
+        if (send_empty_packet) {
+            this->send_empty_data_packet_recv_ack();
+        }
+    }
+
+    // DATA_packet data_packet(++this->blockid, file_buffer, bytes_read);
+
+    // n = this->send_and_recv(data_packet.buffer, data_packet.len, 
+    //                         buffer, RQ_PACKETSIZE);
+
+}
+
 void Client::WRQ() {
     char buffer[RQ_PACKETSIZE] = {0};
     int n;
     Logger logger;
+    // check how many bytes does stdin have
+    std::cin.seekg(0, std::ios::end);
+    std::size_t input_size = std::cin.tellg();
+    std::cin.seekg(0, std::ios::beg);
 
     //
     // Initialize Write Request packet, and send it
     //
     option_t blksize_opt = {.name = "blksize", .value = "1024"};
     option_t timeout_opt = {.name = "timeout", .value = "1"};
-    option_t tsize_opt = {.name = "tsize", .value = "1"};
+    option_t tsize_opt = {.name = "tsize", .value = std::to_string(input_size)};
     this->options.push_back(blksize_opt);
     this->options.push_back(timeout_opt);
-    // this->options.push_back(tsize_opt);
+    this->options.push_back(tsize_opt);
+    this->mode = Mode::NETASCII;
     RQ_packet rq_packet(this->opcode, this->dest_path, this->mode, this->options);
     n = this->send_and_recv(rq_packet.buffer, rq_packet.len, buffer, RQ_PACKETSIZE);
     this->react_to_first_response(buffer);
+    if (this->mode == Mode::NETASCII) {
+        this->netascii_wrq();
+    }
 
     char file_buffer[this->blocksize];
+
     std::streamsize bytes_read;
     while (std::cin.read(file_buffer, this->blocksize) || std::cin.gcount() > 0) {
         bytes_read = std::cin.gcount();
+        std::cout<<"BYTED READ: "<< bytes_read <<std::endl;
         DATA_packet data_packet(++this->blockid, file_buffer, bytes_read);
 
         n = this->send_and_recv(data_packet.buffer, data_packet.len, 

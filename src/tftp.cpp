@@ -15,13 +15,13 @@ ip_t Utils::find_src(struct sockaddr_in *addr) {
     return src;
 }
 
-Opcode Utils::get_opcode(char *buffer, int pos) {
-    return (Opcode)ntohs(*(uint16_t*)(&buffer[pos]));
+Opcode Utils::get_opcode(char *buffer, int i) {
+    return (Opcode)ntohs(*(uint16_t*)(&buffer[i]));
 }
 
-int Utils::get_2byte_num(char *buffer, int pos) {
+int Utils::get_2byte_num(char *buffer, int i) {
     try {
-        int opcode = ntohs(*(uint16_t*)(&buffer[pos]));
+        int opcode = ntohs(*(uint16_t*)(&buffer[i]));
         return opcode;
     }
     catch(int err){
@@ -29,8 +29,47 @@ int Utils::get_2byte_num(char *buffer, int pos) {
     }
 }
 
-void Utils::set_2byte_num(char *buffer, int pos, int num) {
-    *(uint16_t*)(&buffer[pos]) = htons(num);
+void Utils::set_2byte_num(char *buffer, int i, int num) {
+    *(uint16_t*)(&buffer[i]) = htons(num);
+}
+
+void Utils::replace_from_to(std::string *string, std::string from, std::string to)
+{
+    ssize_t pos = 0;
+    while(true) {
+		pos = (*string).find(from, pos);
+		if (pos == std::string::npos) {
+			break;
+		}
+		(*string).erase(pos, from.length());
+		(*string).insert(pos, to);
+        pos += to.length();
+    }
+}
+
+void Utils::convert_string_to_netascii(std::string *string) {
+    Utils::replace_from_to(&(*string), "\r", "\r\0");
+	Utils::replace_from_to(&(*string), "\n", "\r\n");
+}
+
+void Utils::convert_string_from_netascii(std::string *string) {
+    Utils::replace_from_to(&(*string), "\r\0", "\r");
+	Utils::replace_from_to(&(*string), "\r\n", "\n");
+}
+
+void Utils::print_string_LFCR(std::string string) {
+    for (char c : string) {
+        if(c == '\0') {
+            std::cout << "\\0";
+        } else if (c == '\r') {
+            std::cout << "\\r";
+        } else if (c == '\n') {
+            std::cout << "\\n";
+        } else {
+            std::cout << c;
+        }
+    }
+
 }
 
 std::string Utils::convert_mode_to_str(Mode mode) {

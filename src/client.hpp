@@ -46,6 +46,7 @@ class Client {
         void validate_options(OACK_packet oack_packet);
         void react_to_first_response(char *buffer);
         void send_error_packet(Error errcode, std::string errmsg);
+        void netascii_wrq();
 
         /**
          * @brief start the client in Write mode

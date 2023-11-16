@@ -82,6 +82,7 @@ class Server {
          * @param bytes_read lenght of payload 
          */
         void handle_client(sockaddr_in client_address, char recv_buffer[RQ_PACKETSIZE], int bytes_read);
+        void change_from_netascii(Config *cfg);
 };
 
 

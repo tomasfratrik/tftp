@@ -5,6 +5,7 @@
 #include <fstream>
 #include <thread>
 #include <random>
+#include <sstream>
 #include "./server.hpp"
 #include "./args-server.hpp"
 #include "./packet.hpp"
@@ -30,16 +31,6 @@ int Server::send(Config *cfg, struct sockaddr_in *dest, char *buffer, int len){
 
 }
 
-// int Server::recv(Config *cfg, struct sockaddr_in *dest, char *buffer, int len){
-//     cfg->len = sizeof(cfg->client);
-//     int n = recvfrom(cfg->sock, buffer, len, 0, 
-//             (struct sockaddr *)dest, (socklen_t *)&(cfg->len));
-
-//     if (n < 0) {
-//         error_exit("recvfrom error");
-//     }
-//     return n;
-// }
 int Server::recv(Config *cfg, struct sockaddr_in *dest, char *buffer, int buffer_len){
     fd_set read_fds;
     FD_ZERO(&read_fds);
@@ -81,6 +72,18 @@ void Server::respond_to_wrq_rq(Config *cfg){
         n = send(cfg, &cfg->client, oack_packet.buffer, oack_packet.len);
     }
 }
+void Server::change_from_netascii(Config *cfg) {
+    std::string filepath = this->root_dirpath + "/" + cfg->filename;
+    std::ifstream infile(filepath, std::ios::binary);
+    std::stringstream buffer;
+    buffer << infile.rdbuf();
+    std::string file_content = buffer.str();
+    std::ofstream outfile(filepath, std::ios::binary);
+    Utils::convert_string_from_netascii(&file_content);
+    outfile.write(file_content.c_str(), file_content.size());
+    infile.close();
+    outfile.close();
+}
 
 void Server::WRQ(Config *cfg){
     char buffer[SERVER_BLOCKSIZE + 4] = {0};
@@ -96,33 +99,29 @@ void Server::WRQ(Config *cfg){
         logger.log_packet(&data_packet, cfg->src, cfg->dest);
 
         std::string filepath = this->root_dirpath + "/" + cfg->filename;
-        std::ofstream outfile(filepath, std::ios::binary | std::ios::app);
+        std::ofstream outfile(filepath, std::ios::binary);
         // std::ofstream outfile(filepath, std::ios::binary);
         if (!outfile.is_open()) {
             error_exit("Could not open file");
         }
-        // outfile.write(buffer, n-4);
+
         outfile.write(data_packet.data, data_packet.data_size);
 
-        // cfg->blockid++;
         ACK_packet ack_packet(++cfg->blockid);
         n = send(cfg, &cfg->client, ack_packet.buffer, ack_packet.len);
 
         if (buffer_len-4 < SERVER_BLOCKSIZE) {
-            break;
             outfile.close();
+            break;
         }
+    }
+    // cout mode
+    if (cfg->mode == "netascii") {
+       this->change_from_netascii(cfg); 
     }
 }
 
 void Server::handle_client(sockaddr_in client_address, char recv_buffer[RQ_PACKETSIZE], int bytes_read) {
-    // randomly generate new port
-    // TODO: can't we generate with assigning 0, so os will assign random port?
-    std::random_device rd;
-    std::default_random_engine generator(rd());
-    std::uniform_int_distribution<int> distribution(10000, 65535);
-    int new_port = distribution(generator);
-
     // create new socket and bind it with address
     Config *cfg = new Config();
     if ((cfg->sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
@@ -131,13 +130,16 @@ void Server::handle_client(sockaddr_in client_address, char recv_buffer[RQ_PACKE
     
     cfg->server.sin_family = AF_INET;
     cfg->server.sin_addr.s_addr = htonl(INADDR_ANY);  
-    cfg->server.sin_port = htons(new_port);
-    cfg->dest.port = new_port;
+    cfg->server.sin_port = 0;
 
     if (bind(cfg->sock, (struct sockaddr *)&cfg->server, sizeof(cfg->server)) < 0) {
-        error_exit("bind\n (port probably already in use)");
+        error_exit("bind error\n");
     }
 
+    socklen_t addrlen = sizeof(cfg->server);
+    getsockname(cfg->sock, (struct sockaddr*)&cfg->server, &addrlen);
+
+    cfg->dest.port = ntohs(cfg->server.sin_port);
     cfg->client = client_address;
     RQ_packet rq_packet(recv_buffer);
     ip_t src = Utils::find_src(&cfg->client);
@@ -176,6 +178,8 @@ void Server::handle_client(sockaddr_in client_address, char recv_buffer[RQ_PACKE
         error_exit("Invalid opcode");
     }
 
+
+    close(cfg->sock);
 }
 
 void Server::run(){
@@ -219,4 +223,5 @@ void Server::run(){
                                 send_buffer, bytes_read);
         clientThread.detach();
     } 
+    close(serverSock);
 }
