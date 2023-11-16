@@ -271,7 +271,6 @@ void Client::WRQ() {
     this->options.push_back(blksize_opt);
     this->options.push_back(timeout_opt);
     this->options.push_back(tsize_opt);
-    this->mode = Mode::NETASCII;
     RQ_packet rq_packet(this->opcode, this->dest_path, this->mode, this->options);
     n = this->send_and_recv(rq_packet.buffer, rq_packet.len, buffer, RQ_PACKETSIZE);
     this->react_to_first_response(buffer);
@@ -284,7 +283,7 @@ void Client::WRQ() {
     std::streamsize bytes_read;
     while (std::cin.read(file_buffer, this->blocksize) || std::cin.gcount() > 0) {
         bytes_read = std::cin.gcount();
-        std::cout<<"BYTED READ: "<< bytes_read <<std::endl;
+        std::cout<<"BYTES READ: "<< bytes_read <<std::endl;
         DATA_packet data_packet(++this->blockid, file_buffer, bytes_read);
 
         n = this->send_and_recv(data_packet.buffer, data_packet.len, 

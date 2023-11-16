@@ -91,6 +91,8 @@ void Server::WRQ(Config *cfg){
     Logger logger;
     cfg->src = Utils::find_src(&cfg->client);
     this->respond_to_wrq_rq(cfg);
+    std::string filepath = this->root_dirpath + "/" + cfg->filename;
+    std::ofstream outfile(filepath, std::ios::binary);
 
     while (true) {
         n = recv(cfg, &cfg->client, buffer, SERVER_BLOCKSIZE+4);
@@ -98,8 +100,6 @@ void Server::WRQ(Config *cfg){
         DATA_packet data_packet(buffer, n);
         logger.log_packet(&data_packet, cfg->src, cfg->dest);
 
-        std::string filepath = this->root_dirpath + "/" + cfg->filename;
-        std::ofstream outfile(filepath, std::ios::binary);
         // std::ofstream outfile(filepath, std::ios::binary);
         if (!outfile.is_open()) {
             error_exit("Could not open file");
@@ -115,7 +115,6 @@ void Server::WRQ(Config *cfg){
             break;
         }
     }
-    // cout mode
     if (cfg->mode == "netascii") {
        this->change_from_netascii(cfg); 
     }
