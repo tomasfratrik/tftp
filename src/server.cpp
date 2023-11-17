@@ -59,19 +59,7 @@ void Config::setTimeout(int seconds)
 }
 
 
-void Server::respond_to_wrq_rq(Config *cfg){
-    int n;
-    if (!cfg->opt_mode) { //just send ack if no options
-        ACK_packet ack_packet(0);
-        cfg->len = sizeof(cfg->client);
-        n = send(cfg, &cfg->client, ack_packet.buffer, ack_packet.len);
-    }
-    else {
-        OACK_packet oack_packet(cfg->options);
-        cfg->len = sizeof(cfg->client);
-        n = send(cfg, &cfg->client, oack_packet.buffer, oack_packet.len);
-    }
-}
+
 void Server::change_from_netascii(Config *cfg) {
     std::string filepath = this->root_dirpath + "/" + cfg->filename;
     std::ifstream infile(filepath, std::ios::binary);
@@ -85,7 +73,89 @@ void Server::change_from_netascii(Config *cfg) {
     outfile.close();
 }
 
-void Server::WRQ(Config *cfg){
+void Server::respond_to_wrq_rq(Config *cfg){
+    int n;
+    if (!cfg->opt_mode) { //just send ack if no options
+        ACK_packet ack_packet(0);
+        cfg->len = sizeof(cfg->client);
+        n = send(cfg, &cfg->client, ack_packet.buffer, ack_packet.len);
+    }
+    else {
+        OACK_packet oack_packet(cfg->options);
+        cfg->len = sizeof(cfg->client);
+        n = send(cfg, &cfg->client, oack_packet.buffer, oack_packet.len);
+    }
+}
+
+void Server::respond_to_rrq_rq(Config *cfg) {
+    int n;
+    if (cfg->opt_mode) { 
+        std::string new_ts = std::to_string(cfg->filesize);
+        Server::change_option_if_exists(&cfg->options, "tsize", new_ts); 
+        OACK_packet oack_packet(cfg->options);
+        cfg->len = sizeof(cfg->client);
+        n = send(cfg, &cfg->client, oack_packet.buffer, oack_packet.len);
+    }
+}
+
+void Server::send_empty_data_packet_recv_ack(Config *cfg) {
+    Logger logger;
+    char buffer[RQ_PACKETSIZE] = {0};
+    DATA_packet data_packet(++cfg->blockid, nullptr, 0);
+    int n;
+    n = send(cfg, &cfg->client, data_packet.buffer, data_packet.len);
+    n = recv(cfg, &cfg->client, buffer, SERVER_BLOCKSIZE+4);
+    ACK_packet ack_packet(buffer);
+    logger.log_packet(&ack_packet, cfg->src);
+}
+
+void Server::RRQ(Config *cfg) {
+    char buffer[SERVER_BLOCKSIZE + 4] = {0};
+    std::string filepath = this->root_dirpath + "/" + cfg->filename;
+    std::ifstream infile(filepath, std::ifstream::binary);
+    if (infile) {
+        infile.seekg(0, infile.end);
+        cfg->filesize = infile.tellg();
+        infile.seekg(0, infile.beg);
+    }
+    this->respond_to_rrq_rq(cfg);
+
+    int n;
+    // if we sent OACK now recive ACK
+    if (cfg->opt_mode) { 
+        n = recv(cfg, &cfg->client, buffer, SERVER_BLOCKSIZE+4);
+        ACK_packet ack_packet(buffer);
+        cfg->logger.log_packet(&ack_packet, cfg->src);
+        if (ack_packet.blockid != 0) {
+            error_exit("Invalid blockid");
+        }
+    }
+
+    char file_buffer[cfg->blocksize] = {0};
+    std::streamsize bytes_read;
+    while (infile.read(file_buffer, cfg->blocksize) || infile.gcount() > 0) {
+        std::cout<<"sending data packet"<<std::endl;
+        bytes_read = infile.gcount();
+        DATA_packet data_packet(++cfg->blockid, file_buffer, bytes_read);
+        std::cout << "data_packet: " << std::endl;
+        for(int i = 0; i < bytes_read; i++){
+            std::cout << file_buffer[i];
+        }
+
+        n = send(cfg, &cfg->client, data_packet.buffer, data_packet.len);
+        n = recv(cfg, &cfg->client, buffer, SERVER_BLOCKSIZE+4);
+        ACK_packet ack_packet(buffer);
+        cfg->logger.log_packet(&ack_packet, cfg->src);
+    }
+    infile.close();
+    if (bytes_read == cfg->blocksize) { 
+        std::cout<<"sending empty data packet"<<std::endl;
+        this->send_empty_data_packet_recv_ack(cfg);
+    }
+           
+}
+
+void Server::WRQ(Config *cfg) {
     char buffer[SERVER_BLOCKSIZE + 4] = {0};
     int n;
     Logger logger;
@@ -100,7 +170,6 @@ void Server::WRQ(Config *cfg){
         DATA_packet data_packet(buffer, n);
         logger.log_packet(&data_packet, cfg->src, cfg->dest);
 
-        // std::ofstream outfile(filepath, std::ios::binary);
         if (!outfile.is_open()) {
             error_exit("Could not open file");
         }
@@ -117,6 +186,14 @@ void Server::WRQ(Config *cfg){
     }
     if (cfg->mode == "netascii") {
        this->change_from_netascii(cfg); 
+    }
+}
+
+void Server::change_option_if_exists(std::vector<option_t> *options, std::string name, std::string value) {
+    for (auto &opt : *options) {
+        if (opt.name == name) {
+            opt.value = value;
+        }
     }
 }
 
@@ -141,8 +218,8 @@ void Server::handle_client(sockaddr_in client_address, char recv_buffer[RQ_PACKE
     cfg->dest.port = ntohs(cfg->server.sin_port);
     cfg->client = client_address;
     RQ_packet rq_packet(recv_buffer);
-    ip_t src = Utils::find_src(&cfg->client);
-    cfg->logger.log_packet(&rq_packet, src);
+    cfg->src = Utils::find_src(&cfg->client);
+    cfg->logger.log_packet(&rq_packet, cfg->src);
 
     if (rq_packet.options.empty()) {
         cfg->opt_mode = false;
@@ -171,7 +248,7 @@ void Server::handle_client(sockaddr_in client_address, char recv_buffer[RQ_PACKE
         this->WRQ(cfg);
     } 
     else if (rq_packet.opcode == Opcode::RRQ) {
-        // cfg->RRQ();
+        this->RRQ(cfg);
     } 
     else {
         error_exit("Invalid opcode");

@@ -33,6 +33,7 @@ class Client {
     ip_t src;
     ip_t dest;
     bool opt_mode = true;
+    bool completed = false;
     int blockid = 0;
     int blocksize = 0;
     int sock;
@@ -45,11 +46,18 @@ class Client {
         void print_status();
         void validate_options(OACK_packet oack_packet);
         void react_to_first_response(char *buffer);
+        void react_to_first_response_rrq(char *buffer, int buffer_len, std::ofstream& output);
         void send_error_packet(Error errcode, std::string errmsg);
         void netascii_wrq();
 
         /**
-         * @brief start the client in Write mode
+         * @brief start the client in read mode
+         * 
+         */
+        void RRQ(); 
+
+        /**
+         * @brief start the client in write mode
          * 
          */
         void WRQ();

@@ -23,6 +23,7 @@ class Config {
         ip_t src;
         ip_t dest;
         std::string filename;
+        ssize_t filesize;
         std::string mode;
         std::vector<option_t> options;
         Config();
@@ -34,6 +35,16 @@ class Server {
     std::string root_dirpath; 
     public:
         Server(Args_server *args);
+        void send_empty_data_packet_recv_ack(Config *cfg);
+        void change_option_if_exists(std::vector<option_t> *options, 
+                            std::string name, std::string value);
+
+        /**
+         * @brief Read mode for client 
+         * 
+         * @param cfg current client session
+         */
+        void RRQ(Config *cfg);
 
         /**
          * @brief Write mode for client 
@@ -47,6 +58,14 @@ class Server {
          * and threads them
          */
         void run();
+
+        /**
+         * @brief make adequate response to RRQ request
+         * 
+         * @param cfg current client session
+         */
+        void respond_to_rrq_rq(Config *cfg);
+
         /**
          * @brief make adequate response to WRQ request
          * 

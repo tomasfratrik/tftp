@@ -4,6 +4,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include <sstream>
+#include <fstream>
 #include <cstring>
 #include "./client.hpp"
 #include "./error_exit.hpp"
@@ -155,7 +157,54 @@ void Client::validate_options(OACK_packet oack_packet) {
             this->setTimeout(this->default_timeout);
         }
         else if (opt.name == "tsize") {
-            // ...
+            try {
+                value = std::stoi(opt.value);
+            }
+            catch(int err) {
+                this->send_error_packet(Error::ILLEGAL_OPERATION, 
+                        "tsize must be a number");
+            }
+        }
+    }
+}
+void Client::react_to_first_response_rrq(char *buffer, int buffer_len, std::ofstream& output) {
+    Opcode op = Utils::get_opcode(buffer, 0);
+    if (this->opcode == Opcode::RRQ) {
+        switch(op) {
+            case Opcode::DATA:
+            {
+                this->blocksize = DEFAULT_BLOCKSIZE;
+                DATA_packet data_packet(buffer, buffer_len);
+                logger.log_packet(&data_packet, src, dest);
+                output.write(data_packet.data, data_packet.data_size);
+                ACK_packet ack_packet(++this->blockid);
+                this->send(ack_packet.buffer, ack_packet.len);
+                
+                // if this first data packet was aslo last
+                if (data_packet.data_size < this->blocksize) {
+                    this->completed = true;
+                }
+
+            }
+                break;
+            case Opcode::OACK:
+            {
+                std::cout << "OACK packet recived" << std::endl;
+                OACK_packet oack_packet(buffer);
+                logger.log_packet(&oack_packet, src);
+                this->validate_options(oack_packet);
+                ACK_packet ack_packet(0);
+                this->send(ack_packet.buffer, ack_packet.len);
+            }
+                break;
+            case Opcode::ERROR:
+            {
+                std::cout << "ERROR packet recived" << std::endl;
+            }
+                break;
+            default:
+                error_exit("CAN'T FIND SUITABLE OPCODE");
+                break;
         }
     }
 }
@@ -189,9 +238,7 @@ void Client::react_to_first_response(char *buffer) {
                 break;
         }
     }
-    else if (this->opcode == Opcode::RRQ) {
-        // ...
-    }
+    
 }
 
 void Client::netascii_wrq() {
@@ -200,7 +247,6 @@ void Client::netascii_wrq() {
     Utils::convert_string_to_netascii(&input);
     ssize_t input_size = input.length();
     ssize_t curr_size = 0;
-    // print input
 
     char file_buffer[this->blocksize];
     bool send_empty_packet = false;
@@ -208,7 +254,6 @@ void Client::netascii_wrq() {
     int iter = 0;
     int bytes_read = 0;
     for (curr_size = 0; curr_size < input_size; curr_size++){
-        // std::cout<<"test"<<std::endl;
         file_buffer[iter] = input[curr_size]; 
         bytes_read++;
         iter++;
@@ -245,11 +290,51 @@ void Client::netascii_wrq() {
             this->send_empty_data_packet_recv_ack();
         }
     }
+}
 
-    // DATA_packet data_packet(++this->blockid, file_buffer, bytes_read);
+void Client::RRQ() {
+    char buffer[RQ_PACKETSIZE] = {0};
+    int n;
+    std::ofstream outfile(this->dest_path, std::ios::binary);
 
-    // n = this->send_and_recv(data_packet.buffer, data_packet.len, 
-    //                         buffer, RQ_PACKETSIZE);
+    //
+    // Initialize Read Request packet, and send it
+    //
+    option_t blksize_opt = {.name = "blksize", .value = "1024"};
+    option_t timeout_opt = {.name = "timeout", .value = "1"};
+    option_t tsize_opt = {.name = "tsize", .value = "0"};
+    this->options.push_back(blksize_opt);
+    this->options.push_back(timeout_opt);
+    this->options.push_back(tsize_opt);
+    RQ_packet rq_packet(this->opcode, this->dest_path, this->mode, this->options);
+    n = this->send_and_recv(rq_packet.buffer, rq_packet.len, buffer, RQ_PACKETSIZE);
+    this->react_to_first_response_rrq(buffer, n, outfile);
+
+    char data_buffer[this->blocksize + 4];
+
+    while (!this->completed) {
+
+        n = recv(data_buffer, this->blocksize + 4);
+        int buffer_len = n;
+        
+        DATA_packet data_packet(data_buffer, n);
+        logger.log_packet(&data_packet, this->src, this->dest);
+
+        if (!outfile.is_open()) {
+            error_exit("Could not open file");
+        }
+
+        outfile.write(data_packet.data, data_packet.data_size);
+
+        ACK_packet ack_packet(++this->blockid);
+        n = send(ack_packet.buffer, ack_packet.len);
+
+        if (buffer_len-4 < this->blocksize) {
+            outfile.close();
+            break;
+        }
+    }
+    outfile.close();
 
 }
 
@@ -283,7 +368,6 @@ void Client::WRQ() {
     std::streamsize bytes_read;
     while (std::cin.read(file_buffer, this->blocksize) || std::cin.gcount() > 0) {
         bytes_read = std::cin.gcount();
-        std::cout<<"BYTES READ: "<< bytes_read <<std::endl;
         DATA_packet data_packet(++this->blockid, file_buffer, bytes_read);
 
         n = this->send_and_recv(data_packet.buffer, data_packet.len, 
@@ -352,6 +436,6 @@ void Client::run() {
     if(this->opcode == Opcode::WRQ){
         this->WRQ();
     } else {
-        // RRQ();
+        this->RRQ();
     }
 }
