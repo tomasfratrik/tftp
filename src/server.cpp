@@ -108,6 +108,74 @@ void Server::send_empty_data_packet_recv_ack(Config *cfg) {
     ACK_packet ack_packet(buffer);
     logger.log_packet(&ack_packet, cfg->src);
 }
+std::string Server::read_file_into_string(const std::string& filename) {
+    std::ifstream file(filename);
+    if (!file) {
+        std::cout << "Failed to open the file." << std::endl;
+        // error ...
+        return "";
+    }
+    std::string fileContent;
+    file.seekg(0, std::ios::end);
+    fileContent.resize(file.tellg());
+    file.seekg(0, std::ios::beg);
+    file.read(&fileContent[0], fileContent.size());
+    file.close();
+    return fileContent;
+}
+
+void Server::netascii_rrq(Config *cfg) {
+    std::string filepath = this->root_dirpath + "/" + cfg->filename;
+    std::string file_content = this->read_file_into_string(filepath);
+    Utils::convert_string_to_netascii(&file_content);
+    ssize_t file_len = file_content.length();
+    ssize_t curr_size = 0;
+
+    char file_buffer[cfg->blocksize];
+    bool send_empty_packet = false;
+
+    int iter = 0;
+    int bytes_read = 0;
+    for (curr_size = 0; curr_size < file_len; curr_size++){
+        file_buffer[iter] = file_content[curr_size]; 
+        bytes_read++;
+        iter++;
+        if (iter == cfg->blocksize || curr_size == file_len-1) {
+            DATA_packet data_packet(++cfg->blockid, file_buffer, bytes_read);
+            char buffer[RQ_PACKETSIZE] = {0};
+
+            int n = send(cfg, &cfg->client, data_packet.buffer, data_packet.len);
+            n = recv(cfg, &cfg->client, buffer, SERVER_BLOCKSIZE+4);
+
+            //check response from client
+            Opcode op = Utils::get_opcode(buffer, 0);
+            switch(op) {
+                case Opcode::ACK:
+                {
+                    ACK_packet ack_packet(buffer);
+                    cfg->logger.log_packet(&ack_packet, cfg->src);
+                }
+                    break;
+                case Opcode::ERROR:
+                {
+                    std::cout << "ERROR packet recived" << std::endl;
+                }
+                    break;
+                default:
+                    error_exit("CAN'T FIND SUITABLE OPCODE");
+                    break;
+            }
+            if (iter == cfg->blocksize && curr_size == file_len-1) {
+                send_empty_packet = true;
+            }
+            iter = 0;          
+            bytes_read = 0;
+        }
+        if (send_empty_packet) {
+            this->send_empty_data_packet_recv_ack(cfg);
+        }
+    }
+}
 
 void Server::RRQ(Config *cfg) {
     char buffer[SERVER_BLOCKSIZE + 4] = {0};
@@ -118,10 +186,11 @@ void Server::RRQ(Config *cfg) {
         cfg->filesize = infile.tellg();
         infile.seekg(0, infile.beg);
     }
+
     this->respond_to_rrq_rq(cfg);
 
     int n;
-    // if we sent OACK now recive ACK
+    // if we have sent OACK, now recive ACK
     if (cfg->opt_mode) { 
         n = recv(cfg, &cfg->client, buffer, SERVER_BLOCKSIZE+4);
         ACK_packet ack_packet(buffer);
@@ -131,22 +200,24 @@ void Server::RRQ(Config *cfg) {
         }
     }
 
+    if (cfg->mode == "netascii") {
+        this->netascii_rrq(cfg);
+        return;
+    }
+
     char file_buffer[cfg->blocksize] = {0};
     std::streamsize bytes_read;
+    std::cout<<"blocksize: "<<cfg->blocksize<<std::endl;
     while (infile.read(file_buffer, cfg->blocksize) || infile.gcount() > 0) {
-        std::cout<<"sending data packet"<<std::endl;
         bytes_read = infile.gcount();
         DATA_packet data_packet(++cfg->blockid, file_buffer, bytes_read);
-        std::cout << "data_packet: " << std::endl;
-        for(int i = 0; i < bytes_read; i++){
-            std::cout << file_buffer[i];
-        }
 
         n = send(cfg, &cfg->client, data_packet.buffer, data_packet.len);
         n = recv(cfg, &cfg->client, buffer, SERVER_BLOCKSIZE+4);
         ACK_packet ack_packet(buffer);
         cfg->logger.log_packet(&ack_packet, cfg->src);
     }
+
     infile.close();
     if (bytes_read == cfg->blocksize) { 
         std::cout<<"sending empty data packet"<<std::endl;
@@ -216,6 +287,7 @@ void Server::handle_client(sockaddr_in client_address, char recv_buffer[RQ_PACKE
     getsockname(cfg->sock, (struct sockaddr*)&cfg->server, &addrlen);
 
     cfg->dest.port = ntohs(cfg->server.sin_port);
+    std::cout << "New client (communicating on port: "<<cfg->dest.port<<")" << std::endl;
     cfg->client = client_address;
     RQ_packet rq_packet(recv_buffer);
     cfg->src = Utils::find_src(&cfg->client);
@@ -255,6 +327,7 @@ void Server::handle_client(sockaddr_in client_address, char recv_buffer[RQ_PACKE
     }
 
 
+    std::cout <<"Client ("<<cfg->dest.port<<") done" << std::endl;
     close(cfg->sock);
 }
 
@@ -291,7 +364,6 @@ void Server::run(){
         if (bytes_read < 0) {
             error_exit("recvfrom error, bytes read < 0");
         }
-        std::cout << "New incoming client" << std::endl;
 
         char send_buffer[RQ_PACKETSIZE] = {0};
         memcpy(send_buffer, buffer, RQ_PACKETSIZE);

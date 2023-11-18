@@ -12,7 +12,7 @@ class Config {
         char buffer[RQ_PACKETSIZE];
         struct sockaddr_in server, client;
         Logger logger;
-        int blocksize = DEFAULT_BLOCKSIZE;
+        int blocksize = SERVER_BLOCKSIZE;
         int blockid = 0;
         struct timeval timeout;
         int curr_timeout;
@@ -35,6 +35,8 @@ class Server {
     std::string root_dirpath; 
     public:
         Server(Args_server *args);
+        void netascii_rrq(Config *cfg);
+        std::string read_file_into_string(const std::string& filename);
         void send_empty_data_packet_recv_ack(Config *cfg);
         void change_option_if_exists(std::vector<option_t> *options, 
                             std::string name, std::string value);

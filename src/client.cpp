@@ -93,7 +93,6 @@ void Client::send_empty_data_packet_recv_ack() {
     int n = this->send(data_packet.buffer, data_packet.len);
     n = this->recv(buffer, RQ_PACKETSIZE);
     ACK_packet ack_packet(buffer);
-    // ip_t src = Utils::find_src(&(this->server));
     logger.log_packet(&ack_packet, this->src);
 }
 
@@ -118,7 +117,9 @@ int Client::send_and_recv(char *send_buffer, int send_len,
 }
 
 void Client::send_error_packet(Error errcode, std::string errmsg) {
-    ERROR_packet error_packet(errcode, errmsg);
+    std::string msg = errmsg;
+    Utils::convert_string_to_netascii(&msg);
+    ERROR_packet error_packet(errcode, msg);
     this->send(error_packet.buffer, error_packet.len);
 }
 
