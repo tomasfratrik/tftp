@@ -140,15 +140,19 @@ ERROR_packet::ERROR_packet(Error error_code, std::string error_msg) {
     if (error_msg.length() > ERROR_MSG_SIZE-5) {
         // ...
     }
-    memcpy(&this->buffer[4], error_msg.c_str(), error_msg.length());
-    this->len += 4 + error_msg.length();
+    std::string errmsg = error_msg;
+    Utils::convert_string_to_netascii(&errmsg);
+    memcpy(&this->buffer[4], errmsg.c_str(), errmsg.length());
+    this->len += 4 + errmsg.length();
     this->buffer[this->len] = '\0';
 }
 
 ERROR_packet::ERROR_packet(char *buffer) {
     this->opcode = Utils::get_opcode(buffer, 0);
     this->error_code = (Error)Utils::get_2byte_num(buffer, 2);
-    this->error_msg = std::string(&buffer[4]);
+    std::string errmsg = std::string(&buffer[4]);
+    Utils::convert_string_from_netascii(&errmsg);
+    this->error_msg = errmsg;
     this->len += 4 + this->error_msg.length();
     this->buffer[this->len] = '\0';
 }

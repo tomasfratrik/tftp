@@ -46,6 +46,13 @@ int Server::recv(Config *cfg, struct sockaddr_in *dest, char *buffer, int buffer
 
     int n = recvfrom(cfg->sock, buffer, buffer_len, 0, 
             (struct sockaddr *)dest, (socklen_t *)&(cfg->len));
+    
+    //check if the packet is from the same client
+    ip_t incoming_src = Utils::find_src(dest);
+    if (incoming_src.port != cfg->src.port || strcmp(incoming_src.ip, cfg->src.ip) != 0) {
+        this->send_error_packet(Error::UNKNOWN_TID, "Unknown transfer ID", cfg);
+        return -1;
+    }
     return n;
 }
 
@@ -158,7 +165,9 @@ void Server::netascii_rrq(Config *cfg) {
                     break;
                 case Opcode::ERROR:
                 {
-                    std::cout << "ERROR packet recived" << std::endl;
+                    ERROR_packet error_packet(buffer);
+                    cfg->logger.log_packet(&error_packet, cfg->src, cfg->dest);
+                    exit(0);
                 }
                     break;
                 default:
@@ -180,7 +189,14 @@ void Server::netascii_rrq(Config *cfg) {
 void Server::RRQ(Config *cfg) {
     char buffer[SERVER_BLOCKSIZE + 4] = {0};
     std::string filepath = this->root_dirpath + "/" + cfg->filename;
+
+    if (!this->file_exists(filepath)) {
+        this->send_error_packet(Error::FILE_NOT_FOUND, "File not found", cfg);
+        return;
+    } 
     std::ifstream infile(filepath, std::ifstream::binary);
+
+
     if (infile) {
         infile.seekg(0, infile.end);
         cfg->filesize = infile.tellg();
@@ -196,7 +212,8 @@ void Server::RRQ(Config *cfg) {
         ACK_packet ack_packet(buffer);
         cfg->logger.log_packet(&ack_packet, cfg->src);
         if (ack_packet.blockid != 0) {
-            error_exit("Invalid blockid");
+            this->send_error_packet(Error::ILLEGAL_OPERATION, "Illegal operation", cfg);
+            return;
         }
     }
 
@@ -226,6 +243,16 @@ void Server::RRQ(Config *cfg) {
            
 }
 
+void Server::send_error_packet(Error errcode, std::string errmsg, Config *cfg) {
+    ERROR_packet error_packet(errcode, errmsg);
+    this->send(cfg, &cfg->client, error_packet.buffer, error_packet.len);
+}
+
+bool Server::file_exists(const std::string& filename) {
+    std::ifstream file(filename);
+    return file.good();
+}
+
 void Server::WRQ(Config *cfg) {
     char buffer[SERVER_BLOCKSIZE + 4] = {0};
     int n;
@@ -233,7 +260,16 @@ void Server::WRQ(Config *cfg) {
     cfg->src = Utils::find_src(&cfg->client);
     this->respond_to_wrq_rq(cfg);
     std::string filepath = this->root_dirpath + "/" + cfg->filename;
+    if (this->file_exists(filepath)) {
+        this->send_error_packet(Error::FILE_ALREADY_EXISTS, "File already exists", cfg);
+        return;
+    }
+
     std::ofstream outfile(filepath, std::ios::binary);
+    if (!outfile.is_open()) {
+        this->send_error_packet(Error::ACCESS_VIOLATION, "Access violation", cfg);
+        return;
+    }
 
     while (true) {
         n = recv(cfg, &cfg->client, buffer, SERVER_BLOCKSIZE+4);
@@ -241,9 +277,6 @@ void Server::WRQ(Config *cfg) {
         DATA_packet data_packet(buffer, n);
         logger.log_packet(&data_packet, cfg->src, cfg->dest);
 
-        if (!outfile.is_open()) {
-            error_exit("Could not open file");
-        }
 
         outfile.write(data_packet.data, data_packet.data_size);
 

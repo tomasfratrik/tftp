@@ -28,7 +28,7 @@ enum class Error {
     UNKNOWN_TID = 5,
     FILE_ALREADY_EXISTS = 6,
     NO_SUCH_USER = 7,
-    NONE = 8
+    OPTIONS = 8
 };
 
 enum class Opcode {

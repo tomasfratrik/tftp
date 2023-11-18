@@ -9,7 +9,7 @@ void Logger::log_packet(RQ_packet *packet, ip_t src){
             std::cerr<<"WRQ ";
         }
         std::cerr<<src.ip<<":"<<src.port<<" ";
-        std::cerr<<packet->filename<<" ";
+        std::cerr<<"\""<<packet->filename<<"\""<<" ";
         std::cerr<<packet->mode;
         for (auto opt : packet->options){
             std::cerr<<" "<<opt.name<<"="<<opt.value;
@@ -36,4 +36,10 @@ void Logger::log_packet(DATA_packet *packet, ip_t src, ip_t dest) {
     std::cerr<<"DATA ";
     std::cerr<<src.ip<<":"<<src.port<<":"<<dest.port<<" ";
     std::cerr<<packet->blockid<<std::endl;
+}
+
+void Logger::log_packet(ERROR_packet *packet, ip_t src, ip_t dest) {
+    std::cerr<<"ERROR ";
+    std::cerr<<src.ip<<":"<<src.port<<":"<<dest.port<<" ";
+    std::cerr<<(int)packet->error_code<<" "<<"\""<<packet->error_msg<<"\""<<std::endl;
 }

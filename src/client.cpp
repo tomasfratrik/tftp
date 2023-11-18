@@ -25,13 +25,6 @@ Client::Client(Args *args){
     mode = Mode::OCTET;
 }
 
-void Client::print_status() {
-    std::cout << "hostname: " << hostname << std::endl;
-    std::cout << "port: " << port << std::endl;
-    std::cout << "filepath: " << server_filepath << std::endl;
-    std::cout << "dest_path: " << dest_path << std::endl;
-}
-
 int Client::send(char *buffer, int len){
     int n = sendto(this->sock, buffer, len, 0, 
             (struct sockaddr *)&(this->server), sizeof(this->server));
@@ -62,8 +55,11 @@ int Client::recv(char *buffer, int len){
 
     //if port changed again send error
     if (this->port_changed && this->port != incoming_port) {
-        // ERROR
+        ERROR_packet error_packet(Error::UNKNOWN_TID, "PORT CHANGED");
+        this->send(error_packet.buffer, error_packet.len);
+        exit(0);
     }
+
     else if (this->port_changed == false) {
         this->port = ntohs(server_address.sin_port);
         this->server.sin_port = htons(this->port);
@@ -74,26 +70,31 @@ int Client::recv(char *buffer, int len){
     return n;
 }
 
-void Client::send_rq_packet() {
-    option_t blksize_opt = {.name = "blksize", .value = "1024"};
-    option_t timeout_opt = {.name = "timeout", .value = "1"};
-    option_t test = {.name = "tsize", .value = "1"};
-    this->options.push_back(blksize_opt);
-    this->options.push_back(test);
-    this->options.push_back(timeout_opt);
-
-    RQ_packet rq_packet(this->opcode, this->dest_path, this->mode, this->options);
-    int n = this->send(rq_packet.buffer, rq_packet.len);
-}
-
 void Client::send_empty_data_packet_recv_ack() {
     Logger logger;
     char buffer[RQ_PACKETSIZE] = {0};
     DATA_packet data_packet(++this->blockid, nullptr, 0);
     int n = this->send(data_packet.buffer, data_packet.len);
     n = this->recv(buffer, RQ_PACKETSIZE);
-    ACK_packet ack_packet(buffer);
-    logger.log_packet(&ack_packet, this->src);
+    Opcode op = Utils::get_opcode(buffer, 0);
+    switch(op) {
+        case Opcode::ACK:
+        {
+            ACK_packet ack_packet(buffer);
+            logger.log_packet(&ack_packet, this->src);
+        }
+            break;
+        case Opcode::ERROR:
+        {
+            ERROR_packet error_packet(buffer);
+            logger.log_packet(&error_packet, this->src, this->dest);
+            exit(0);
+        }
+            break;
+        default:
+            send_error_packet(Error::ILLEGAL_OPERATION, "CAN'T FIND SUITABLE OPCODE");
+            break;
+    }
 }
 
 int Client::send_and_recv(char *send_buffer, int send_len, 
@@ -117,9 +118,7 @@ int Client::send_and_recv(char *send_buffer, int send_len,
 }
 
 void Client::send_error_packet(Error errcode, std::string errmsg) {
-    std::string msg = errmsg;
-    Utils::convert_string_to_netascii(&msg);
-    ERROR_packet error_packet(errcode, msg);
+    ERROR_packet error_packet(errcode, errmsg);
     this->send(error_packet.buffer, error_packet.len);
 }
 
@@ -147,12 +146,14 @@ void Client::validate_options(OACK_packet oack_packet) {
                     value = std::stoi(opt.value);
             }
             catch(int err) {
-                this->send_error_packet(Error::ILLEGAL_OPERATION, 
+                this->send_error_packet(Error::OPTIONS, 
                         "timeout must be a number");
+                exit(0);
             }
             if (value < 1 || value > 255) {
-                this->send_error_packet(Error::ILLEGAL_OPERATION, 
+                this->send_error_packet(Error::OPTIONS, 
                         "timeout must be greater than 1 and less than 255");
+                exit(0);
             }
             this->default_timeout = value;
             this->setTimeout(this->default_timeout);
@@ -162,8 +163,9 @@ void Client::validate_options(OACK_packet oack_packet) {
                 value = std::stoi(opt.value);
             }
             catch(int err) {
-                this->send_error_packet(Error::ILLEGAL_OPERATION, 
+                this->send_error_packet(Error::OPTIONS, 
                         "tsize must be a number");
+                exit(0);
             }
         }
     }
@@ -200,7 +202,18 @@ void Client::react_to_first_response_rrq(char *buffer, int buffer_len, std::ofst
                 break;
             case Opcode::ERROR:
             {
-                std::cout << "ERROR packet recived" << std::endl;
+                if (this->retransimitted_request) {
+                    ERROR_packet error_packet(buffer);
+                    logger.log_packet(&error_packet, this->src, this->dest);
+                    std::cout << "ERROR packet recived again, after retransimitted request" << std::endl;
+                    exit(0);
+                }
+                this->retransimitted_request = true;
+                ERROR_packet error_packet(buffer);
+                logger.log_packet(&error_packet, this->src, this->dest);
+                this->opt_mode = false;
+                RQ_packet rq_packet(this->opcode, this->dest_path, this->mode, this->options);
+                int n = this->send(rq_packet.buffer, rq_packet.len);
             }
                 break;
             default:
@@ -209,7 +222,7 @@ void Client::react_to_first_response_rrq(char *buffer, int buffer_len, std::ofst
         }
     }
 }
-void Client::react_to_first_response(char *buffer) {
+void Client::react_to_first_response_wrq(char *buffer) {
     Opcode op = Utils::get_opcode(buffer, 0);
     int value;
 
@@ -231,7 +244,18 @@ void Client::react_to_first_response(char *buffer) {
                 break;
             case Opcode::ERROR:
             {
-                std::cout << "ERROR packet recived" << std::endl;
+                if (this->retransimitted_request) {
+                    ERROR_packet error_packet(buffer);
+                    logger.log_packet(&error_packet, this->src, this->dest);
+                    std::cout << "ERROR packet recived again, after retransimitted request" << std::endl;
+                    exit(0);
+                }
+                this->retransimitted_request = true;
+                ERROR_packet error_packet(buffer);
+                logger.log_packet(&error_packet, this->src, this->dest);
+                this->opt_mode = false;
+                RQ_packet rq_packet(this->opcode, this->dest_path, this->mode, this->options);
+                int n = this->send(rq_packet.buffer, rq_packet.len);
             }
                 break;
             default:
@@ -274,7 +298,9 @@ void Client::netascii_wrq() {
                     break;
                 case Opcode::ERROR:
                 {
-                    std::cout << "ERROR packet recived" << std::endl;
+                    ERROR_packet error_packet(buffer);
+                    logger.log_packet(&error_packet, this->src, this->dest);
+                    exit(0);
                 }
                     break;
                 default:
@@ -310,6 +336,12 @@ void Client::RRQ() {
     RQ_packet rq_packet(this->opcode, this->dest_path, this->mode, this->options);
     n = this->send_and_recv(rq_packet.buffer, rq_packet.len, buffer, RQ_PACKETSIZE);
     this->react_to_first_response_rrq(buffer, n, outfile);
+
+    // if we got an error, we retransimmed the request
+    // so now we need to react to that response again
+    if (this->retransimitted_request) {
+        this->react_to_first_response_rrq(buffer, n, outfile);
+    }
 
     char data_buffer[this->blocksize + 4];
 
@@ -357,12 +389,20 @@ void Client::WRQ() {
     this->options.push_back(blksize_opt);
     this->options.push_back(timeout_opt);
     this->options.push_back(tsize_opt);
+    // this->mode = Mode::NETASCII;
     RQ_packet rq_packet(this->opcode, this->dest_path, this->mode, this->options);
     n = this->send_and_recv(rq_packet.buffer, rq_packet.len, buffer, RQ_PACKETSIZE);
-    this->react_to_first_response(buffer);
+    this->react_to_first_response_wrq(buffer);
+
+    // if we got an error, we retransimmed the request
+    // so now we need to react to that response again
+    if (this->retransimitted_request) {
+        this->react_to_first_response_wrq(buffer);
+    }
     if (this->mode == Mode::NETASCII) {
         this->netascii_wrq();
     }
+
 
     char file_buffer[this->blocksize];
 
@@ -384,11 +424,13 @@ void Client::WRQ() {
                 break;
             case Opcode::ERROR:
             {
-                std::cout << "ERROR packet recived" << std::endl;
+                ERROR_packet error_packet(buffer);
+                logger.log_packet(&error_packet, this->src, this->dest);
+                exit(0);
             }
                 break;
             default:
-                error_exit("CAN'T FIND SUITABLE OPCODE");
+                send_error_packet(Error::ILLEGAL_OPERATION, "CAN'T FIND SUITABLE OPCODE");
                 break;
         }
         std::cin.clear();

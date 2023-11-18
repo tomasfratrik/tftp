@@ -17,6 +17,7 @@ class Client {
     std::string hostname;
     int port = DEFAULT_PORT;
     bool port_changed = false;
+    bool retransimitted_request = false;
 
     Opcode opcode;
     Mode mode = Mode::OCTET;
@@ -45,7 +46,7 @@ class Client {
         void run();
         void print_status();
         void validate_options(OACK_packet oack_packet);
-        void react_to_first_response(char *buffer);
+        void react_to_first_response_wrq(char *buffer);
         void react_to_first_response_rrq(char *buffer, int buffer_len, std::ofstream& output);
         void send_error_packet(Error errcode, std::string errmsg);
         void netascii_wrq();

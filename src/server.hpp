@@ -38,6 +38,8 @@ class Server {
         void netascii_rrq(Config *cfg);
         std::string read_file_into_string(const std::string& filename);
         void send_empty_data_packet_recv_ack(Config *cfg);
+        void send_error_packet(Error errcode, std::string errmsg, Config *cfg);
+        bool file_exists(const std::string& filename);
         void change_option_if_exists(std::vector<option_t> *options, 
                             std::string name, std::string value);
 
