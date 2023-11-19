@@ -1,6 +1,8 @@
 src/*.o
 src/*.d
 files
+runcli
+runser
 xfratr01.zip
 xfratr01.tar
 .vscode

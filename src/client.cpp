@@ -28,8 +28,9 @@ Client::Client(Args *args){
 int Client::send(char *buffer, int len){
     int n = sendto(this->sock, buffer, len, 0, 
             (struct sockaddr *)&(this->server), sizeof(this->server));
-
+    
     if (n < 0){
+        std::cout<<"n: "<< n << std::endl;
         error_exit("sendto error");
     }
     return n;
@@ -389,7 +390,6 @@ void Client::WRQ() {
     this->options.push_back(blksize_opt);
     this->options.push_back(timeout_opt);
     this->options.push_back(tsize_opt);
-    // this->mode = Mode::NETASCII;
     RQ_packet rq_packet(this->opcode, this->dest_path, this->mode, this->options);
     n = this->send_and_recv(rq_packet.buffer, rq_packet.len, buffer, RQ_PACKETSIZE);
     this->react_to_first_response_wrq(buffer);
@@ -402,7 +402,6 @@ void Client::WRQ() {
     if (this->mode == Mode::NETASCII) {
         this->netascii_wrq();
     }
-
 
     char file_buffer[this->blocksize];
 
@@ -437,7 +436,7 @@ void Client::WRQ() {
     }
     // if last read chunk was exactly blocksize
     // send empty packet
-    if (bytes_read == BLOCKSIZE) { 
+    if (bytes_read == this->blocksize) { 
         this->send_empty_data_packet_recv_ack();
     }
 }

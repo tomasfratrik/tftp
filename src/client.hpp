@@ -44,6 +44,7 @@ class Client {
 
         // run client
         void run();
+        void init_rq_packet_options(RQ_packet *packet, int blksize, int timeout, int tsize);
         void print_status();
         void validate_options(OACK_packet oack_packet);
         void react_to_first_response_wrq(char *buffer);

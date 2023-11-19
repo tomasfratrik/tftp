@@ -8,7 +8,7 @@
 #include <vector>
 #include <utility>
 
-#define BLOCKSIZE 1024 
+#define MAXBLOCKSIZE 65464 
 // The maximum size of a request packet
 #define RQ_PACKETSIZE 512
 #define DEFAULT_BLOCKSIZE 512
@@ -87,8 +87,8 @@ class RQ_packet : public Packet {
 
 class DATA_packet : public Packet {
     public:
-        char data[BLOCKSIZE] = {0};
-        char buffer[4 + BLOCKSIZE] = {0};
+        char data[MAXBLOCKSIZE] = {0};
+        char buffer[4 + MAXBLOCKSIZE] = {0};
         int data_size;
         DATA_packet(int blockid, char *data, int data_size);
         DATA_packet(char *buffer, int packet_len);

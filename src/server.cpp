@@ -86,6 +86,7 @@ void Server::respond_to_wrq_rq(Config *cfg){
         ACK_packet ack_packet(0);
         cfg->len = sizeof(cfg->client);
         n = send(cfg, &cfg->client, ack_packet.buffer, ack_packet.len);
+        cfg->blocksize = DEFAULT_BLOCKSIZE;
     }
     else {
         OACK_packet oack_packet(cfg->options);
@@ -111,7 +112,7 @@ void Server::send_empty_data_packet_recv_ack(Config *cfg) {
     DATA_packet data_packet(++cfg->blockid, nullptr, 0);
     int n;
     n = send(cfg, &cfg->client, data_packet.buffer, data_packet.len);
-    n = recv(cfg, &cfg->client, buffer, SERVER_BLOCKSIZE+4);
+    n = recv(cfg, &cfg->client, buffer, cfg->blocksize+4);
     ACK_packet ack_packet(buffer);
     logger.log_packet(&ack_packet, cfg->src);
 }
@@ -152,7 +153,7 @@ void Server::netascii_rrq(Config *cfg) {
             char buffer[RQ_PACKETSIZE] = {0};
 
             int n = send(cfg, &cfg->client, data_packet.buffer, data_packet.len);
-            n = recv(cfg, &cfg->client, buffer, SERVER_BLOCKSIZE+4);
+            n = recv(cfg, &cfg->client, buffer, cfg->blocksize+4);
 
             //check response from client
             Opcode op = Utils::get_opcode(buffer, 0);
@@ -187,7 +188,7 @@ void Server::netascii_rrq(Config *cfg) {
 }
 
 void Server::RRQ(Config *cfg) {
-    char buffer[SERVER_BLOCKSIZE + 4] = {0};
+    char buffer[cfg->blocksize + 4] = {0};
     std::string filepath = this->root_dirpath + "/" + cfg->filename;
 
     if (!this->file_exists(filepath)) {
@@ -208,7 +209,7 @@ void Server::RRQ(Config *cfg) {
     int n;
     // if we have sent OACK, now recive ACK
     if (cfg->opt_mode) { 
-        n = recv(cfg, &cfg->client, buffer, SERVER_BLOCKSIZE+4);
+        n = recv(cfg, &cfg->client, buffer, cfg->blocksize+4);
         ACK_packet ack_packet(buffer);
         cfg->logger.log_packet(&ack_packet, cfg->src);
         if (ack_packet.blockid != 0) {
@@ -230,7 +231,7 @@ void Server::RRQ(Config *cfg) {
         DATA_packet data_packet(++cfg->blockid, file_buffer, bytes_read);
 
         n = send(cfg, &cfg->client, data_packet.buffer, data_packet.len);
-        n = recv(cfg, &cfg->client, buffer, SERVER_BLOCKSIZE+4);
+        n = recv(cfg, &cfg->client, buffer, cfg->blocksize+4);
         ACK_packet ack_packet(buffer);
         cfg->logger.log_packet(&ack_packet, cfg->src);
     }
@@ -254,7 +255,7 @@ bool Server::file_exists(const std::string& filename) {
 }
 
 void Server::WRQ(Config *cfg) {
-    char buffer[SERVER_BLOCKSIZE + 4] = {0};
+    char buffer[cfg->blocksize + 4] = {0};
     int n;
     Logger logger;
     cfg->src = Utils::find_src(&cfg->client);
@@ -272,7 +273,7 @@ void Server::WRQ(Config *cfg) {
     }
 
     while (true) {
-        n = recv(cfg, &cfg->client, buffer, SERVER_BLOCKSIZE+4);
+        n = recv(cfg, &cfg->client, buffer, cfg->blocksize+4);
         int buffer_len = n;
         DATA_packet data_packet(buffer, n);
         logger.log_packet(&data_packet, cfg->src, cfg->dest);
@@ -283,7 +284,7 @@ void Server::WRQ(Config *cfg) {
         ACK_packet ack_packet(++cfg->blockid);
         n = send(cfg, &cfg->client, ack_packet.buffer, ack_packet.len);
 
-        if (buffer_len-4 < SERVER_BLOCKSIZE) {
+        if (buffer_len-4 < cfg->blocksize) {
             outfile.close();
             break;
         }
@@ -297,6 +298,59 @@ void Server::change_option_if_exists(std::vector<option_t> *options, std::string
     for (auto &opt : *options) {
         if (opt.name == name) {
             opt.value = value;
+        }
+    }
+}
+
+void Server::validate_options(Config *cfg, RQ_packet rq_packet) {
+    int value;
+    for (auto opt : rq_packet.options) {
+        if (opt.name == "blksize") {
+            // if value is less then 8 throw error
+            try {
+                value = std::stoi(opt.value);
+            }
+            catch(int err) {
+                this->send_error_packet(Error::ILLEGAL_OPERATION, 
+                        "blksize must be a number", cfg);
+                cfg->terminate = true;
+            }
+            if (value < 8 || value > 65464) {
+                this->send_error_packet(Error::ILLEGAL_OPERATION, 
+                        "blksize must be greater than 8 and less than 65464", cfg);
+            }
+            cfg->blocksize = value;
+            cfg->options.push_back(opt);
+        }
+        else if (opt.name == "timeout") {
+            try {
+                    value = std::stoi(opt.value);
+            }
+            catch(int err) {
+                this->send_error_packet(Error::OPTIONS, 
+                        "timeout must be a number", cfg);
+                exit(0);
+            }
+            if (value < 1 || value > 255) {
+                this->send_error_packet(Error::OPTIONS, 
+                        "timeout must be greater than 1 and less than 255", cfg);
+                exit(0);
+            }
+            cfg->curr_timeout = value;
+            cfg->setTimeout(cfg->curr_timeout);
+            cfg->options.push_back(opt);
+        }
+        else if (opt.name == "tsize") {
+            try {
+                value = std::stoi(opt.value);
+            }
+            catch(int err) {
+                this->send_error_packet(Error::OPTIONS, 
+                        "tsize must be a number", cfg);
+                exit(0);
+            }
+            cfg->tsize = value;
+            cfg->options.push_back(opt);
         }
     }
 }
@@ -330,24 +384,12 @@ void Server::handle_client(sockaddr_in client_address, char recv_buffer[RQ_PACKE
         cfg->opt_mode = false;
     } else {
         cfg->opt_mode = true;
-        for (auto opt : rq_packet.options) {
-            if (opt.name == "blksize") {
-                opt.value = "1024";
-                cfg->options.push_back(opt);
-            }
-            else if (opt.name == "tsize") {
-                opt.value = "1";
-                cfg->options.push_back(opt);
-            }
-            else if (opt.name == "timeout") {
-                opt.value = "1";
-                cfg->options.push_back(opt);
-            }
-        }
+        this->validate_options(cfg, rq_packet);
     }
+
     cfg->filename = rq_packet.filename;
     cfg->mode = rq_packet.mode;
-    cfg->setTimeout(DEFAULT_TIMEOUT);
+    cfg->setTimeout(cfg->curr_timeout);
 
     if (rq_packet.opcode == Opcode::WRQ) {
         this->WRQ(cfg);

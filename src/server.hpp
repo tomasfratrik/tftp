@@ -19,7 +19,9 @@ class Config {
         int len;
         int sock;
         int port;
+        int tsize;
         bool opt_mode;
+        bool terminate = false;
         ip_t src;
         ip_t dest;
         std::string filename;
@@ -39,6 +41,7 @@ class Server {
         std::string read_file_into_string(const std::string& filename);
         void send_empty_data_packet_recv_ack(Config *cfg);
         void send_error_packet(Error errcode, std::string errmsg, Config *cfg);
+        void validate_options(Config *cfg, RQ_packet rq_packet);
         bool file_exists(const std::string& filename);
         void change_option_if_exists(std::vector<option_t> *options, 
                             std::string name, std::string value);
